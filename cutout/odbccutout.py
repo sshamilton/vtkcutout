@@ -4,12 +4,54 @@ import pyodbc
 import numpy as np
 import django
 import os
+import h5py
+import tempfile
 
 class OdbcCutout:
     def __init__(self):
         #initialize odbc
         self.db = None
         
+    def gethdf(self, webargs):
+        DBSTRING = os.environ['db_connection_string']
+        conn = pyodbc.connect(DBSTRING, autocommit=True)
+        cursor = conn.cursor()
+        
+        #url = "http://localhost:8000/cutout/getcutout/"+ token + "/" + dataset + "/" + datafield + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze
+        w = webargs.split("/")
+        ts = int(w[3].split(',')[0])
+        te = int(w[3].split(',')[1])
+        xs = int(w[4].split(',')[0])
+        xe = int(w[4].split(',')[1])
+        ys = int(w[5].split(',')[0])
+        ye = int(w[5].split(',')[1])
+        zs = int(w[6].split(',')[0])
+        ze = int(w[6].split(',')[1])
+        if ((w[2] == 'vo') or (w[2] == 'qc') or (w[2] == 'cvo') or (w[2] == 'qcc')):
+            component = 'u'
+        else:
+            component = w[2]
+        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, ts, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
+        row = cursor.fetchone()
+        raw = row[0]
+        data = np.frombuffer(raw, dtype=np.float32)
+        tmpfile = tempfile.NamedTemporaryFile()
+        fh5out = h5py.File(tmpfile.name, driver='core', backing_store=True)
+
+        try:
+            tmpfile = tempfile.NamedTemporaryFile()
+            fh = h5py.File(tmpfile.name, driver='core', backing_store=True)
+            dsetname = w[2] + str(w[3])
+            dset = fh.create_dataset(dsetname, (xe-xs,ye-ys,ze-zs,3),dtype='f')
+            data = data.reshape(xe-xs,ye-ys,ze-zs,3)
+            dset[...] = data
+        except:
+            fh5out.close()
+            tmpfile.close()
+            raise
+        fh5out.close()
+        tmpfile.seek(0)
+        return tmpfile
 
     def getvtkimage(self, webargs):
         #Setup query

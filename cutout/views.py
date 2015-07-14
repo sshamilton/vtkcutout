@@ -67,7 +67,10 @@ def getcutout(request, webargs):
         response['Content-Disposition'] = 'attachment;filename=' +  outfile + '.' + suffix
     else: #for backward compatibility, we serve hdf5 if not specified
         #Create an HDF5 file here
-        response = HttpResponse("HDF5 file placeholder")
+        h5file = odbccutout.OdbcCutout().gethdf(webargs)
+        response = HttpResponse(h5file, content_type='data/hdf5')
+        response['Content-Disposition'] = 'attachment;filename=test.h5'
+
     return response
     #return HttpResponse(result)
 

@@ -15,10 +15,10 @@ ye = 8
 zs = 0
 ze = 8
 
-cursor.execute("{CALL mhddev_hamilton.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",'isotropic1024coarse','u',ts,xs,ys,zs,1,1,1,1,te,xe,ye,ze,1,1)
+cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",'isotropic1024coarse','u',ts,xs,ys,zs,1,1,1,1,te,xe,ye,ze,1,1)
 row = cursor.fetchone()
 raw = row[0]
-data = np.frombuffer(raw, dtype=float32)
+data = np.frombuffer(raw, dtype='float32')
 vtkdata = numpy_support.numpy_to_vtk(data, deep=True, array_type=vtk.VTK_FLOAT)
 vtkdata.SetNumberOfComponents(3)
 image = vtk.vtkImageData()
@@ -29,4 +29,14 @@ writer = vtk.vtkXMLImageDataWriter()
 writer.SetInputData(image)
 writer.SetFileName('test.vti')
 writer.Write()
+
+
+import tempfile
+import h5py
+
+tmpfile = tempfile.NamedTemporaryFile()
+fh = h5py.File(tmpfile.name, driver='core', backing_store=True)
+dset = fh.create_dataset("iso", (xe-xs,ye-ys,ze-zs,3),dtype='f')
+data = data.reshape(xe-xs,ye-ys,ze-zs,3)
+dset = data
 
