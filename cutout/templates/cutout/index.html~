@@ -1,0 +1,113 @@
+VTK Turbulence cutout service
+
+<form method="POST" action="{% url 'geturl' %}"  />{% csrf_token %}
+
+Authorization Token:<input name="token" type="text" value="" id="token" style="width:256px" />
+Select Dataset:
+
+<select name=dataset>
+{% for dataset in dataset_list %}
+<option value={{dataset.dbname_text}}>  {{ dataset.dataset_text }}</option>
+{% endfor %}
+</select>
+<br />Fields (velocity for now)
+<select name=datafield>
+  <option value="u">Velocity</option>
+  <option value="p">Pressure</option>
+  <option value="vo">Vorticity</option>
+  <option value="cvo">Vorticity Contour</option>
+</select>
+<table>
+ 
+<tr>
+
+            <td valign="top" colspan="2">Starting coordinate <br /> index for cutout: [<a href="/datasets.aspx" class="note">?</a>] </td>
+
+            <td valign="top" colspan="2"> &nbsp;Size of cutout: [<a href="/datasets.aspx" class="note">?</a>] <br />
+
+                <span class="style1"> &nbsp;(end index minus start index + 1)</span> </td>            
+
+            <td class="style35" valign="top" colspan="2">
+
+                <input id="step_checkbox" type="checkbox" name="step_checkbox"  />
+
+                <span id="stepCell" title="Optionally select a step size. If omitted every point in the range will be returned."> &nbsp;
+
+                    <span class="style39">Step (optional) :</span>
+
+                </span> 
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <td  >m<sub>t</sub> (0-1024): </td>
+
+            <td > <input name="timestart" type="text" value="0" id="timestart" style="width:40px;" /><br /> </td>
+
+            <td  > &nbsp;M<sub>t</sub> (1-1025): </td>
+
+            <td > <input name="timeend" type="text" value="0" id="timeend" style="width:40px;" /><br /> </td>
+
+            <td >  </td>
+
+            <td >  </td>
+
+            <td  rowspan="4">  
+
+                 </td>
+
+         </tr>
+
+         <tr>
+
+            <td  > i<sub>x</sub> (0-1023):  </td>
+
+            <td > <input name="x" type="text" value="0" id="x" style="width:40px;" /><br /> </td>
+
+            <td  > &nbsp;N<sub>x</sub> (1-1024):  </td>
+
+            <td > <input name="xEnd" type="text" value="0" id="xEnd" style="width:40px;" /> <br /> </td>
+
+            <td >  </td>
+
+            <td >  </td>
+
+         </tr>
+
+         <tr>
+
+            <td  > j<sub>y</sub> (0-1023):  </td>
+
+            <td > <input name="y" type="text" value="0" id="y" style="width:40px;" /><br /> </td>
+
+            <td  > &nbsp;N<sub>y</sub> (1-1024):  </td>
+
+            <td > <input name="yEnd" type="text" value="0" id="yEnd" style="width:40px;" /><br /> </td>
+
+            <td >  </td>
+
+            <td >  </td>
+
+         </tr>
+
+         <tr>
+
+            <td  > k<sub>z</sub> (0-1023):  </td>
+
+            <td > <input name="z" type="text" value="0" id="z" style="width:40px;" /> </td>
+
+            <td  > &nbsp;N<sub>z</sub> (1-1024):  </td>
+
+            <td > <input name="zEnd" type="text" value="0" id="zEnd" style="width:40px;" /> </td>
+
+            <td >  </td>
+
+            <td >  </td>
+
+         </tr>    
+</table>
+<input type="submit" name="Submit" Value="Submit Cutout Parameters" />
+</form>
