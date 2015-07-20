@@ -39,9 +39,10 @@ def geturl(request):
 def getcutout(request, webargs):
     params = "parameters=%s" % webargs
     w = webargs.split("/")
+    ts = int(w[3].split(',')[0])
+    te = int(w[3].split(',')[1])
     #o = odbccutout.OdbcCutout()
     if ((len(w) >= 8) and (w[7] == 'vtk')):    
-        image = odbccutout.OdbcCutout().getvtkimage(webargs)
         #Setup temporary file (would prefer an in-memory buffer, but this will have to do for now)
 
         if ((w[2] == 'cvo') or (w[2] == 'qcc')): #we may need to return a vtp file
@@ -54,12 +55,19 @@ def getcutout(request, webargs):
             suffix = 'vti'
             writer = vtk.vtkXMLImageDataWriter()
             outfile = 'cutout' + w[7]
-        
-        writer.SetInputData(image)
+        writer.SetTimeStepRange(ts,te)
         writer.SetFileName(tmp.name)
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
+        #writer.Start()
+        for timestep in range (ts,te):
+            image = odbccutout.OdbcCutout().getvtkimage(webargs, timestep)
+            writer.SetInputData(timestep, image)
+            writer.SetTimeStep(timestep)
+            
+        #writer.Stop()
         result = writer.Write()
+        writer.Stop()
         #f = open(tmp, 'r')
         #return HttpResponse(image)
         ct = 'xml/' + suffix
@@ -69,7 +77,8 @@ def getcutout(request, webargs):
         #Create an HDF5 file here
         h5file = odbccutout.OdbcCutout().gethdf(webargs)
         response = HttpResponse(h5file, content_type='data/hdf5')
-        response['Content-Disposition'] = 'attachment;filename=test.h5'
+        attach = 'attachment;filename=' + w[1] + '.h5'
+        response['Content-Disposition'] = attach
 
     return response
     #return HttpResponse(result)

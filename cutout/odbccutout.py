@@ -31,29 +31,40 @@ class OdbcCutout:
             component = 'u'
         else:
             component = w[2]
-        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, ts, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
-        row = cursor.fetchone()
-        raw = row[0]
-        data = np.frombuffer(raw, dtype=np.float32)
-        tmpfile = tempfile.NamedTemporaryFile()
-        fh5out = h5py.File(tmpfile.name, driver='core', backing_store=True)
+        
 
         try:
             tmpfile = tempfile.NamedTemporaryFile()
-            fh = h5py.File(tmpfile.name, driver='core', backing_store=True)
-            dsetname = w[2] + str(w[3])
-            dset = fh.create_dataset(dsetname, (xe-xs,ye-ys,ze-zs,3),dtype='f')
-            data = data.reshape(xe-xs,ye-ys,ze-zs,3)
-            dset[...] = data
+            fh = h5py.File(tmpfile.name, driver='core', block_size=16, backing_store=True)
+            contents = fh.create_dataset('_contents', (1,), dtype='int32')
+            contents[0] = 1
+            dataset = fh.create_dataset('_dataset', (1,), dtype='int32')
+            dataset[0] = 4
+            size = fh.create_dataset('_size', (4,), dtype='int32')
+            size[...] = [te-ts,xe-xs,ye-ys,ze-zs]
+            start = fh.create_dataset('_start', (4,), dtype='int32')
+            start[...] = [ts,xs, ys, zs]
+
+            for time in range(ts,te):
+                cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, time, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
+                row = cursor.fetchone()
+                raw = row[0]
+                data = np.frombuffer(raw, dtype=np.float32)
+                dsetname = component + '{0:05d}'.format(time*10)
+                dset = fh.create_dataset(dsetname, (xe-xs,ye-ys,ze-zs,3), maxshape=(xe-xs,ye-ys,ze-zs,3),compression='gzip')
+                
+                data = data.reshape(xe-xs,ye-ys,ze-zs,3)
+                dset[...] = data
         except:
-            fh5out.close()
+            fh.close()
             tmpfile.close()
             raise
-        fh5out.close()
+        fh.close()
         tmpfile.seek(0)
+        cursor.close()
         return tmpfile
 
-    def getvtkimage(self, webargs):
+    def getvtkimage(self, webargs, timestep):
         #Setup query
         DBSTRING = os.environ['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
@@ -73,7 +84,7 @@ class OdbcCutout:
             component = 'u'
         else:
             component = w[2]
-        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, ts, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
+        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, timestep, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
         row = cursor.fetchone()
         raw = row[0]
         data = np.frombuffer(raw, dtype=np.float32)
