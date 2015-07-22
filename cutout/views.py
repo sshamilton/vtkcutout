@@ -5,6 +5,7 @@ from django.core.files.temp import NamedTemporaryFile
 import vtk
 import tempfile
 import h5py
+import zipfile
 
 from .models import Dataset
 import odbccutout
@@ -48,31 +49,31 @@ def getcutout(request, webargs):
         if ((w[2] == 'cvo') or (w[2] == 'qcc')): #we may need to return a vtp file
             tmp = NamedTemporaryFile(suffix='.vtp')
             suffix = 'vtp'
-            writer = vtk.vtkXMLPolyDataWriter()
+            writer = vtk.vtkXMLPolyDataWriter()                         
             outfile = w[7] + '-contour'
         else:
             tmp = NamedTemporaryFile(suffix='.vti')
             suffix = 'vti'
-            writer = vtk.vtkXMLImageDataWriter()
-            outfile = 'cutout' + w[7]
-        writer.SetTimeStepRange(ts,te)
+            writer = vtk.vtkXMLImageDataWriter()                        
+            outfile = 'cutout' + w[7]        
         writer.SetFileName(tmp.name)
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
-        #writer.Start()
-        for timestep in range (ts,te):
+        #Write each timestep to file and read it back in.  Seems to be the only way I know how to put all timesteps in one file for now
+        #Create a timestep for each file and then send the user a zip file
+        ziptmp = NamedTemporaryFile(suffix='.zip')
+        z = zipfile.ZipFile(ziptmp.name, 'w')
+        for timestep in range (ts,te):            
             image = odbccutout.OdbcCutout().getvtkimage(webargs, timestep)
-            writer.SetInputData(timestep, image)
-            writer.SetTimeStep(timestep)
-            
-        #writer.Stop()
-        result = writer.Write()
-        writer.Stop()
-        #f = open(tmp, 'r')
-        #return HttpResponse(image)
-        ct = 'xml/' + suffix
-        response = HttpResponse(tmp, content_type=ct)
-        response['Content-Disposition'] = 'attachment;filename=' +  outfile + '.' + suffix
+            writer.SetInputData(image)
+            writer.SetFileName(tmp.name)                        
+            writer.Write()
+            #Now add this file to the zipfile
+            z.write(tmp.name, 'cutout' + str(timestep) + '.' + suffix)
+        z.close()
+        ct = 'zip/' + suffix
+        response = HttpResponse(ziptmp, content_type=ct)
+        response['Content-Disposition'] = 'attachment;filename=' +  outfile + '.zip' 
     else: #for backward compatibility, we serve hdf5 if not specified
         #Create an HDF5 file here
         h5file = odbccutout.OdbcCutout().gethdf(webargs)
