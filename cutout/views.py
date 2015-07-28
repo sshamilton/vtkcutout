@@ -31,9 +31,12 @@ def geturl(request):
     zs = request.POST.get("z", "")
     ze = request.POST.get("zEnd", "")
     dataset = request.POST.get("dataset", "")
-    datafield = request.POST.get("datafield", "")
+    datafield = request.POST.getlist("datafield", "")
+    datafields = ''.join(datafield)
+    if (len(datafield) == 0):
+        datafields = request.POST.get("cdatafield", "")
     filetype = request.POST.get("fileformat", "")
-    url = "http://localhost:8000/cutout/getcutout/"+ token + "/" + dataset + "/" + datafield + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze + "/" + filetype
+    url = "http://localhost:8000/cutout/getcutout/"+ token + "/" + dataset + "/" + datafields + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze + "/" + filetype
 
     return HttpResponse("Your download URL is <br /><a href='{0}'>{0}</a>".format(url))
 
@@ -59,21 +62,31 @@ def getcutout(request, webargs):
         writer.SetFileName(tmp.name)
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
-        #Write each timestep to file and read it back in.  Seems to be the only way I know how to put all timesteps in one file for now
-        #Create a timestep for each file and then send the user a zip file
-        ziptmp = NamedTemporaryFile(suffix='.zip')
-        z = zipfile.ZipFile(ziptmp.name, 'w')
-        for timestep in range (ts,te):            
-            image = odbccutout.OdbcCutout().getvtkimage(webargs, timestep)
+        #if multiple timesteps, zip the file.
+        if ((te-ts) > 1):
+            #Write each timestep to file and read it back in.  Seems to be the only way I know how to put all timesteps in one file for now
+            #Create a timestep for each file and then send the user a zip file
+            ziptmp = NamedTemporaryFile(suffix='.zip')
+            z = zipfile.ZipFile(ziptmp.name, 'w')
+            for timestep in range (ts,te):            
+                image = odbccutout.OdbcCutout().getvtkimage(webargs, timestep)
+                writer.SetInputData(image)
+                writer.SetFileName(tmp.name)                        
+                writer.Write()
+                #Now add this file to the zipfile
+                z.write(tmp.name, 'cutout' + str(timestep) + '.' + suffix)
+            z.close()
+            ct = 'application/zip'
+            suffix = 'zip'
+            response = HttpResponse(ziptmp, content_type=ct)
+        else:
+            image = odbccutout.OdbcCutout().getvtkimage(webargs, ts)
             writer.SetInputData(image)
             writer.SetFileName(tmp.name)                        
             writer.Write()
-            #Now add this file to the zipfile
-            z.write(tmp.name, 'cutout' + str(timestep) + '.' + suffix)
-        z.close()
-        ct = 'zip/' + suffix
-        response = HttpResponse(ziptmp, content_type=ct)
-        response['Content-Disposition'] = 'attachment;filename=' +  outfile + '.zip' 
+            ct = 'data/vtk'
+            response = HttpResponse(tmp, content_type=ct)
+        response['Content-Disposition'] = 'attachment;filename=' +  outfile +'.' + suffix
     else: #for backward compatibility, we serve hdf5 if not specified
         #Create an HDF5 file here
         h5file = odbccutout.OdbcCutout().gethdf(webargs)

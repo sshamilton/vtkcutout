@@ -63,6 +63,29 @@ class OdbcCutout:
         tmpfile.seek(0)
         cursor.close()
         return tmpfile
+    def numcomponents(self, component):
+        #change this to get from DB in the future, using odbc connection
+        if (component == 'u'):
+            return 3
+        elif (component == 'p'):
+            return 1
+        elif (component == 'b'):
+            return 3 #check this
+        elif (component == 'a'):
+            return 1 #check this
+        else:
+            return 3
+        
+    def componentname(self, component):
+        #change this to get from DB in the future, using odbc connection
+        if (component == 'u'):
+            return "Velocity"
+        if (component == 'p'):
+            return "Pressure"
+        if (component == 'b'):
+            return "Magnetic Field"
+        if (component == 'a'):
+            return "Vector Potential" 
 
     def getvtkimage(self, webargs, timestep):
         #Setup query
@@ -82,20 +105,25 @@ class OdbcCutout:
         ze = int(w[6].split(',')[1])
         if ((w[2] == 'vo') or (w[2] == 'qc') or (w[2] == 'cvo') or (w[2] == 'qcc')):
             component = 'u'
+            computation = w[2] #We are doing a computation, so we need to know which one.
         else:
-            component = w[2]
-        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, timestep, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
-        row = cursor.fetchone()
-        raw = row[0]
-        data = np.frombuffer(raw, dtype=np.float32)
-        vtkdata = numpy_support.numpy_to_vtk(data, deep=True, array_type=vtk.VTK_FLOAT)
-        vtkdata.SetNumberOfComponents(3)
-        vtkdata.SetName("Velocity")
-        image = vtk.vtkImageData()
-        image.SetExtent(xs, xs+xe-1, ys, ys+ye-1, zs, zs+ze-1)
-        image.GetPointData().SetVectors(vtkdata)
-        #See if we are doing anything extra
-        computation = w[2]
+            component = w[2] #There could be multiple components, so we will have to loop            
+        #Split component into list and add them to the image 
+        fieldlist = list(component)
+        for field in fieldlist:
+            cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], field, timestep, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
+            row = cursor.fetchone()
+            raw = row[0]
+            data = np.frombuffer(raw, dtype=np.float32)
+            vtkdata = numpy_support.numpy_to_vtk(data, deep=True, array_type=vtk.VTK_FLOAT)
+            components = self.numcomponents(field)
+            vtkdata.SetNumberOfComponents(components)
+            vtkdata.SetName(self.componentname(field))
+            image = vtk.vtkImageData()
+            image.SetExtent(xs, xs+xe-1, ys, ys+ye-1, zs, zs+ze-1)
+            image.GetPointData().SetVectors(vtkdata)
+
+        #See if we are doing a computation
         if (computation == 'vo'):
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()

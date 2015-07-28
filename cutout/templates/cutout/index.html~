@@ -1,22 +1,40 @@
-VTK Turbulence cutout service
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Johns Hopkins Turbulence Databases (JHTDB)</title>
 
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+Turbulence Expanded cutout service
+<script type="text/javascript" src="http://localhost/static/scripts/chosen.jquery.min.js"></script>
+<link rel="stylesheet" href="http://localhost/static/scripts/chosen.css">
 <form method="POST" action="{% url 'geturl' %}"  />{% csrf_token %}
-
-Authorization Token:<input name="token" type="text" value="" id="token" style="width:256px" />
-Select Dataset:
-
-<select name=dataset>
+<table>
+<tr><td>Authorization Token:</td><td><input name="token" type="text" value="" id="token" style="width:256px" /></td></tr>
+<tr><td>Select Dataset:</td>
+<td><select name='dataset' data-placeholder="Choose a Dataset..." class='dselector' style="width:250px;" tabindex="2">
 {% for dataset in dataset_list %}
 <option value={{dataset.dbname_text}}>  {{ dataset.dataset_text }}</option>
 {% endfor %}
-</select>
-<br />Fields (velocity for now)
-<select name=datafield>
-  <option value="u">Velocity</option>
-  <option value="p">Pressure</option>
+</select></td></tr>
+
+<tr><td>Data Field(s):  </td>
+<td><select name='datafield' multiple data-placeholder='Choose Fields' class='datafield' style="width: 350px;">
+<option value='u'>Velocity</option>
+<option value='p'>Pressure</option>
+</select></td></tr>
+<td></td><td>Or choose a computed field (VTK Only): <select name='cdatafield' class='cdatafield'>
+  <option value="none">None</option>
   <option value="vo">Vorticity</option>
+  <option value ="qc">Q-Criterion</option>
   <option value="cvo">Vorticity Contour</option>
+  <option value="qcc">Q-Criterion Contour</option>
+</select></td></tr>
+<tr><td>File Format</td>
+<td><select name='fileformat' class='fileformat'>
+  <option value="vtk">VTK</option>
+  <option value="hdf5">HDF5</option>
+
 </select>
+</td></tr>
+</table>
 <table>
  
 <tr>
@@ -33,7 +51,7 @@ Select Dataset:
 
                 <span id="stepCell" title="Optionally select a step size. If omitted every point in the range will be returned."> &nbsp;
 
-                    <span class="style39">Step (optional) :</span>
+                    <span >Step (optional) :</span>
 
                 </span> 
 
@@ -51,9 +69,9 @@ Select Dataset:
 
             <td > <input name="timeend" type="text" value="0" id="timeend" style="width:40px;" /><br /> </td>
 
-            <td >  </td>
+           <td >  </td> <td class="step">s<sub>t</sub>:<input type="text" name ="tstep" value="1" style="width: 40px;"> </td>
 
-            <td >  </td>
+            
 
             <td  rowspan="4">  
 
@@ -71,9 +89,9 @@ Select Dataset:
 
             <td > <input name="xEnd" type="text" value="0" id="xEnd" style="width:40px;" /> <br /> </td>
 
-            <td >  </td>
+            <td >  </td><td class="step">s<sub>x</sub>:<input type="text" name ="xstep" value="1" style="width: 40px;"> </td>
 
-            <td >  </td>
+             
 
          </tr>
 
@@ -87,9 +105,9 @@ Select Dataset:
 
             <td > <input name="yEnd" type="text" value="0" id="yEnd" style="width:40px;" /><br /> </td>
 
-            <td >  </td>
+            <td >  </td><td class="step">s<sub>y</sub>:<input type="text" name ="ystep" value="1" style="width: 40px;"> </td>
 
-            <td >  </td>
+             
 
          </tr>
 
@@ -103,11 +121,84 @@ Select Dataset:
 
             <td > <input name="zEnd" type="text" value="0" id="zEnd" style="width:40px;" /> </td>
 
-            <td >  </td>
+            <td >  </td><td class="step">s<sub>z</sub>:<input type="text" name ="zstep" value="1" style="width: 40px;"> </td>
 
-            <td >  </td>
+            
 
          </tr>    
 </table>
+
+
 <input type="submit" name="Submit" Value="Submit Cutout Parameters" />
 </form>
+<script>
+$(".dselector").chosen();
+$(".datafield").chosen();
+$(".cdatafield").chosen();
+$(".fileformat").chosen();
+$(".step").hide();
+
+$('#step_checkbox').on('change', function() {    
+   var val = $(this).val();
+   if ($(this).is(":checked"))
+   $('.step').show();  
+  else
+   $('.step').hide();
+});
+
+
+$('.datafield').on('change', function() {
+   var dset= $(this).val();
+   //Clear out any values on computed fields
+   $(function() {$(".cdatafield").val("none");
+    });
+  $('.cdatafield').trigger('chosen:updated');
+});
+
+
+$('.cdatafield').on('change', function() {
+   var dset= $(this).val();
+   //Clear out any values on data fields
+   $(function() {$(".datafield").val([]);
+    });
+    $('.datafield').trigger('chosen:updated');
+});
+
+$('.fileformat').on('change', function() {
+   var ftype= $(this).val();
+   if (ftype == 'hdf5')
+       //Clear out any values on computed fields
+       $(function() {$(".cdatafield").val([]);
+        });
+        $('.cdatafield').trigger('chosen:updated');
+
+});
+
+
+$('.dselector').on('change', function() {
+   var dset= $(this).val();
+   //Clear out any values 
+   //alert('changed');
+   $(".datafield").find('option').remove();
+   if (dset == 'isotropic1024coarse' || dset == 'isotropic1024fine' || dset == 'channel' ){
+      $(".datafield").append($("<option>", {value: 'u', text: 'Velocity'}));
+      $(".datafield").append($("<option>", {value: 'p', text: 'Pressure'})); 
+    } 
+   else if (dset == 'mhd1024'){
+      $(".datafield").append($("<option>", {value: 'u', text: 'Velocity'}));
+      $(".datafield").append($("<option>", {value: 'p', text: 'Pressure'}));
+      $(".datafield").append($("<option>", {value: 'b', text: 'Magnetic Field'}));
+      $(".datafield").append($("<option>", {value: 'a', text: 'VectorPotential'})); 
+    } 
+    else if (dset == 'mixing'){
+      $(".datafield").append($("<option>", {value: 'u', text: 'Velocity'}));
+      $(".datafield").append($("<option>", {value: 'p', text: 'Pressure'}));
+      $(".datafield").append($("<option>", {value: 'd', text: 'Density'}));
+    }
+
+   
+   $('.datafield').trigger('chosen:updated');
+});
+</script>
+
+
