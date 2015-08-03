@@ -25,6 +25,10 @@ activation_email.txt
 ##############
 *.h5
 *.JSON
+dbconn.sh
+*.vti
+*.vtk
+*.vtp
 
 ######################
 # OS Generated Files #
