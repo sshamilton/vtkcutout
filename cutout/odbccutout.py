@@ -44,17 +44,34 @@ class OdbcCutout:
             size[...] = [te-ts,xe-xs,ye-ys,ze-zs]
             start = fh.create_dataset('_start', (4,), dtype='int32')
             start[...] = [ts,xs, ys, zs]
-
-            for time in range(ts,te):
-                cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], component, time, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
-                row = cursor.fetchone()
-                raw = row[0]
-                data = np.frombuffer(raw, dtype=np.float32)
-                dsetname = component + '{0:05d}'.format(time*10)
-                dset = fh.create_dataset(dsetname, (xe-xs,ye-ys,ze-zs,3), maxshape=(xe-xs,ye-ys,ze-zs,3),compression='gzip')
-                
-                data = data.reshape(xe-xs,ye-ys,ze-zs,3)
-                dset[...] = data
+            fieldlist = list(component)
+            for field in fieldlist:
+                #Look for step parameters
+                if (len(w) > 7):
+                    step = True;
+                    s = w[8].split(",")
+                    tstep = s[0]
+                    xstep = float(s[1])
+                    ystep = float(s[2])
+                    zstep = float(s[3])
+                    filterwidth = w[9]
+		    print("Stepped: %s" %s[1])
+		else:
+                    print("len is %" %len(w))
+		    xstep = 1
+		    ystep = 1
+		    zstep = 1
+		    filterwidth = 1
+                for timestep in range(ts,te):
+                    cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], field, timestep, xs, ys, zs, 1, xstep, ystep, zstep,1,xe,ye,ze,filterwidth,1)
+                    row = cursor.fetchone()
+                    raw = row[0]
+                    data = np.frombuffer(raw, dtype=np.float32)
+                    dsetname = field + '{0:05d}'.format(timestep*10)
+                    dset = fh.create_dataset(dsetname, ((xe-xs)/xstep,(ye-ys)/ystep,(ze-zs)/zstep,3), maxshape=((xe-xs)/xstep,(ye-ys)/ystep,(ze-zs)/zstep,3),compression='gzip')
+		    print ("Data length is: %s" %len(data))
+		    data = data.reshape((xe-xs)/xstep,(ye-ys)/ystep,(ze-zs)/zstep,3)
+                    dset[...] = data
         except:
             fh.close()
             tmpfile.close()
@@ -103,15 +120,30 @@ class OdbcCutout:
         ye = int(w[5].split(',')[1])
         zs = int(w[6].split(',')[0])
         ze = int(w[6].split(',')[1])
+        #Look for step parameters
+        if (len(w) > 7):
+            step = True;
+            s = w[8].split(",")
+            tstep = s[0]
+            xstep = float(s[1])
+            ystep = float(s[2])
+            zstep = float(s[3])
+            filterwidth = w[9]
+        else:
+            xstep = 1
+            ystep = 1
+            zstep = 1
+            filterwidth = 1
         if ((w[2] == 'vo') or (w[2] == 'qc') or (w[2] == 'cvo') or (w[2] == 'qcc')):
             component = 'u'
             computation = w[2] #We are doing a computation, so we need to know which one.
         else:
-            component = w[2] #There could be multiple components, so we will have to loop            
+            component = w[2] #There could be multiple components, so we will have to loop     
+            computation = ''       
         #Split component into list and add them to the image 
         fieldlist = list(component)
         for field in fieldlist:
-            cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], field, timestep, xs, ys, zs, 1, 1,1,1,1,xe,ye,ze,1,1)
+            cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], field, timestep, xs, ys, zs, 1, xstep, ystep, zstep,1,xe,ye,ze,filterwidth,1)
             row = cursor.fetchone()
             raw = row[0]
             data = np.frombuffer(raw, dtype=np.float32)
@@ -120,9 +152,24 @@ class OdbcCutout:
             vtkdata.SetNumberOfComponents(components)
             vtkdata.SetName(self.componentname(field))
             image = vtk.vtkImageData()
-            image.SetExtent(xs, xs+xe-1, ys, ys+ye-1, zs, zs+ze-1)
+            if (step):
+                xes = int(xe)/int(xstep)-1
+                yes = int(ye)/int(ystep)-1
+                zes = int(ze)/int(zstep)-1
+                image.SetExtent(xs, xs+xes, ys, ys+yes, zs, zs+zes)
+                print("Step extent=" +str(xes))
+            else:
+                image.SetExtent(xs, xs+xe-1, ys, ys+ye-1, zs, zs+ze-1)
             image.GetPointData().SetVectors(vtkdata)
 
+            if (0): #Magnify to original size
+                resize = vtk.vtkImageResize()
+                resize.SetResizeMethodToOutputSpacing()
+                resize.SetInputData(image)
+                resize.SetOutputSpacing(xstep, ystep, zstep)
+                resize.Update()
+                image = resize.GetOutput()
+                
         #See if we are doing a computation
         if (computation == 'vo'):
             vorticity = vtk.vtkCellDerivatives()

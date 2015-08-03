@@ -37,7 +37,9 @@ def geturl(request):
         datafields = request.POST.get("cdatafield", "")
     filetype = request.POST.get("fileformat", "")
     url = "http://localhost:8000/cutout/getcutout/"+ token + "/" + dataset + "/" + datafields + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze + "/" + filetype
-
+    if (request.POST.get("step_checkbox", "")):
+        url = url + "/" + request.POST.get("tstep") + "," + request.POST.get("xstep") + "," + request.POST.get("ystep") + "," + request.POST.get("zstep") + "/" + request.POST.get("filter") 
+    
     return HttpResponse("Your download URL is <br /><a href='{0}'>{0}</a>".format(url))
 
 def getcutout(request, webargs):
