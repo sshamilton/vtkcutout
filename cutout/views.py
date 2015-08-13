@@ -56,6 +56,11 @@ def getcutout(request, webargs):
             suffix = 'vtp'
             writer = vtk.vtkXMLPolyDataWriter()                         
             outfile = w[7] + '-contour'
+        elif (w[1] == "channel"):
+	    tmp = NamedTemporaryFile(suffix='.vtr')
+	    suffix = 'vtr'
+	    writer = vtk.vtkXMLRectilinearGridWriter()
+	    outfile = 'cutout' + w[7]
         else:
             tmp = NamedTemporaryFile(suffix='.vti')
             suffix = 'vti'
@@ -81,6 +86,7 @@ def getcutout(request, webargs):
             ct = 'application/zip'
             suffix = 'zip'
             response = HttpResponse(ziptmp, content_type=ct)
+
         else:
             image = odbccutout.OdbcCutout().getvtkimage(webargs, ts)
             writer.SetInputData(image)
