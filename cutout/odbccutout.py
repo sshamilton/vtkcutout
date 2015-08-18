@@ -147,15 +147,26 @@ class OdbcCutout:
             ystep = 1
             zstep = 1
             filterwidth = 1
-        if ((w[2] == 'vo') or (w[2] == 'qc') or (w[2] == 'cvo') or (w[2] == 'qcc')):
+        cfieldlist = w[2].split(",")
+        firstval = cfieldlist[0]         
+        if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'qcc')):
             component = 'u'
-            computation = w[2] #We are doing a computation, so we need to know which one.
+            computation = firstval #We are doing a computation, so we need to know which one.
+            #check to see if we have a threshold (only for contours)
+            if (len(cfieldlist) > 1):
+                threshold = float(cfieldlist[1])
+            else:
+                threshold = .6
         else:
             component = w[2] #There could be multiple components, so we will have to loop
             computation = ''
         #Split component into list and add them to the image
+
+        #Check to see if we have a value for vorticity or q contour
         fieldlist = list(component)
+
         for field in fieldlist:
+            print("Field = %s" % field)
             cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",w[1], field, timestep, xs, ys, zs, xstep, ystep, zstep, 1,1,xe,ye,ze,filterwidth,1)
             row = cursor.fetchone()
             raw = row[0]
@@ -229,10 +240,7 @@ class OdbcCutout:
             mag.SetInputData(image)
             mag.Update()
             c = vtk.vtkContourFilter()
-            if (len(w) == 9):
-                c.SetValue(0,float(w[8]))
-            else:
-                c.SetValue(0,.6)
+            c.SetValue(0,threshold)
             c.SetInputData(mag.GetOutput())
             c.Update()
             return c.GetOutput()
@@ -241,10 +249,7 @@ class OdbcCutout:
             q.SetInputData(image)
             q.SetInputScalars(image.FIELD_ASSOCIATION_POINTS,"Velocity")
             q.ComputeQCriterionOn()
-            if (len(w) == 9):
-                q.SetComputeQCriterion(int(w[8]))
-            else:
-                q.SetComputeQCriterion(4.0)
+            q.SetComputeQCriterion(threshold)
             q.Update()
 
             mag = vtk.vtkImageMagnitude()
