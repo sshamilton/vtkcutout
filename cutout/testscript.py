@@ -21,9 +21,22 @@ raw = row[0]
 data = np.frombuffer(raw, dtype='float32')
 vtkdata = numpy_support.numpy_to_vtk(data, deep=True, array_type=vtk.VTK_FLOAT)
 vtkdata.SetNumberOfComponents(3)
+vtkdata.SetName("Velocity")
 image = vtk.vtkImageData()
 image.SetExtent(xs, xs+xe-1, ys, ys+ye-1, zs, zs+ze-1)
 image.GetPointData().SetVectors(vtkdata)
+
+
+q = vtk.vtkGradientFilter()
+q.SetInputData(image)
+q.SetInputScalars(image.FIELD_ASSOCIATION_POINTS,"Velocity")
+q.ComputeQCriterionOn()
+q.Update()
+newimage = vtk.vtkImageData()
+newimage.GetPointData().SetScalars(q.GetOutput().GetPointData().GetVectors("Q-criterion"))
+mag = vtk.vtkImageMagnitude()
+mag.SetInputData(newimage)
+mag.Update()
 
 writer = vtk.vtkXMLImageDataWriter()
 writer.SetInputData(image)

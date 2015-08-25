@@ -6,6 +6,9 @@ Turbulence Expanded cutout service
 <script type="text/javascript" src="/static/scripts/chosen.jquery.min.js"></script>
 <link rel="stylesheet" href="/static/scripts/chosen.css">
 <style>
+#id_dataset {
+    width: 250px;
+}
 #id_fileformat {
     width: 80px;
 }
@@ -36,7 +39,10 @@ Turbulence Expanded cutout service
 #id_zEnd {
     width: 40px;
 }
-#threshold {
+#id_threshold {
+    width: 40px;
+}
+#id_filter {
     width: 40px;
 }
 
@@ -184,16 +190,18 @@ $(document).ready(function() {
   if($("#id_step_checkbox").is(':checked')){ 
     $('.step').show();
   }
-  if ($("#cdatafields").val() == "cvo") {
+  if ($("#id_cdatafields").val() == "cvo") {
       $('#threshold').show();
   }
-  else if ($("#cdatafields").val() == "qcc") {
+  else if ($("#id_cdatafields").val() == "qcc") {
       $('#threshold').show();
   }
   else {
       $('#threshold').hide();
-
   }
+
+  $('#id_dataset').trigger('change');
+  
 });
 
 

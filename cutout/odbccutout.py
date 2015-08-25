@@ -90,7 +90,6 @@ class OdbcCutout:
 	for row in rows:
             ygrid[row.cell_index]=row.value
         conn.close()
-        print ygrid
 	return ygrid
 
     def numcomponents(self, component):
@@ -133,7 +132,7 @@ class OdbcCutout:
         zs = int(w[6].split(',')[0])
         ze = int(w[6].split(',')[1])
         #Look for step parameters
-        if (len(w) > 8):
+        if (len(w) > 9):
             step = True;
 	    s = w[8].split(",")
             tstep = s[0]
@@ -224,17 +223,19 @@ class OdbcCutout:
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
             vorticity.SetInputData(image)
+            print("Computing Vorticity")
             vorticity.Update()
-            return vorticity.GetOutput()
         elif (computation == 'cvo'):
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
             vorticity.SetInputData(image)
+            print("Computing Voricity")
             vorticity.Update()
             mag = vtk.vtkImageMagnitude()
             cp = vtk.vtkCellDataToPointData()
             cp.SetInputData(vorticity.GetOutput())
+            print("Computing magnitude")
             cp.Update()
             image.GetPointData().SetScalars(cp.GetOutput().GetPointData().GetVectors())
             mag.SetInputData(image)
@@ -242,6 +243,7 @@ class OdbcCutout:
             c = vtk.vtkContourFilter()
             c.SetValue(0,threshold)
             c.SetInputData(mag.GetOutput())
+            print("Computing Contour")
             c.Update()
             return c.GetOutput()
         elif (computation == 'qcc'):
@@ -249,18 +251,14 @@ class OdbcCutout:
             q.SetInputData(image)
             q.SetInputScalars(image.FIELD_ASSOCIATION_POINTS,"Velocity")
             q.ComputeQCriterionOn()
-            q.SetComputeQCriterion(threshold)
             q.Update()
-
+            #newimage = vtk.vtkImageData()
+            image.GetPointData().SetScalars(q.GetOutput().GetPointData().GetVectors("Q-criterion"))
             mag = vtk.vtkImageMagnitude()
-            cp = vtk.vtkCellDataToPointData()
-            cp.SetInputData(q.GetOutput())
-            cp.Update()
-            image.GetPointData().SetScalars(cp.GetOutput().GetPointData().GetVectors())
             mag.SetInputData(image)
             mag.Update()
             c = vtk.vtkContourFilter()
-
+            c.SetValue(0,threshold)
             c.SetInputData(mag.GetOutput())
             c.Update()
             return c.GetOutput()

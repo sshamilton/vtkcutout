@@ -18,7 +18,8 @@ class CutoutForm(forms.Form):
     token = forms.CharField(label = 'token', max_length=50)
     fileformat = forms.ChoiceField(choices=[('vtk', 'VTK'), ('hdf5', 'HDF5')])
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.all().order_by('dataset_text'), to_field_name="dbname_text")
-    datafields = forms.MultipleChoiceField(choices=[('u', 'Velocity'), ('p', 'Pressure')])
+    datafields = forms.MultipleChoiceField(choices=[('u', 'Velocity'), ('p',
+        'Pressure')])
     cdatafields = forms.ChoiceField(choices=[('', '---------'),
         ('vo', 'Vorticity'),
         ('qc', 'Q-Criterion'),
@@ -68,12 +69,12 @@ def index(request):
 
         filetype = request.POST.get("fileformat", "")
         server = request.META['HTTP_HOST']
-        url = "http://" + server + "/cutout/getcutout/"+ token + "/" + dataset + "/" + datafields + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze + "/" + filetype
+        url = "http://" + server + "/cutout/getcutout/"+ token + "/" + dataset + "/" + datafields + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze + "/" + filetype + "/"
         if (request.POST.get("step_checkbox", "")):
             url = url + "/" + request.POST.get("tstep") + "," + request.POST.get("xstep") + "," + request.POST.get("ystep") + "," + request.POST.get("zstep") + "/" + request.POST.get("filter") 
         download_link = url
         dataset_list = Dataset.objects.order_by('dataset_text')
-        form = CutoutForm(request.POST)    
+        form = CutoutForm(request.POST)
         context = RequestContext(request, { 'dataset_list': dataset_list, 'download_link': download_link, 'form': form}) 
     else:
         form = CutoutForm()
@@ -90,6 +91,10 @@ def getcutout(request, webargs):
     #o = odbccutout.OdbcCutout()
     if ((len(w) >= 8) and (w[7] == 'vtk')):    
         #Setup temporary file (would prefer an in-memory buffer, but this will have to do for now)
+        if (len(w) >= 10):
+            tspacing = int(w[8].split(",")[0])
+        else:
+            tspacing = 1
         cfieldlist = w[2].split(",")
         firstval = cfieldlist[0]
         if ((firstval == 'cvo') or (firstval == 'qcc')): #we may need to return a vtp file
@@ -116,7 +121,7 @@ def getcutout(request, webargs):
             #Create a timestep for each file and then send the user a zip file
             ziptmp = NamedTemporaryFile(suffix='.zip')
             z = zipfile.ZipFile(ziptmp.name, 'w')
-            for timestep in range (ts,te):            
+            for timestep in range (ts,te, tspacing ):            
                 image = odbccutout.OdbcCutout().getvtkimage(webargs, timestep)
                 writer.SetInputData(image)
                 writer.SetFileName(tmp.name)                        
