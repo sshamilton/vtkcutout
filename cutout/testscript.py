@@ -8,12 +8,12 @@ cursor = conn.cursor()
 
 ts = 0
 te = 1
-xs = 0
-xe = 8
-ys = 0
-ye = 8
-zs = 0
-ze = 8
+xs = 600
+xe = 15
+ys = 600
+ye = 15
+zs = 600
+ze = 15
 
 cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",'isotropic1024coarse','u',ts,xs,ys,zs,1,1,1,1,te,xe,ye,ze,1,1)
 row = cursor.fetchone()
