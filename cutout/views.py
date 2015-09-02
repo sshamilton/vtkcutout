@@ -1,6 +1,6 @@
-from django.http import HttpResponse
 from django.shortcuts import render
 from django.template import RequestContext, loader
+from django.http import HttpResponse
 from django.core.files.temp import NamedTemporaryFile
 from django import forms
 import vtk
