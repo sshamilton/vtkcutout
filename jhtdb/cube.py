@@ -43,6 +43,7 @@ class Cube:
             print ("added part %d" % part)
             print ("Part size is %d" % len(row[0]))
         print ("Raw size is %d" % len(raw))
+        print ("components is %d" % components)
         self.data = np.frombuffer(raw, dtype=np.float32).reshape([self.zwidth/ci.zstep,self.ywidth/ci.ystep,self.xwidth/ci.xstep,components])
         print("shape = ")
         print (self.data.shape)

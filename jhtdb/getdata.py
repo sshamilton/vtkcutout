@@ -27,12 +27,11 @@ class GetData:
         corner = [ci.xstart, ci.ystart, ci.zstart]
         step = [ci.xstep, ci.ystep, ci.zstep]
         fullcube = Cube(corner, fullcubesize,step, filterwidth, components )        
-
         cubesize = [cubedimension, cubedimension, cubedimension]
         for xcorner in range (ci.xstart,ci.xstart + ci.xlen, cubedimension):
             for ycorner in range (ci.ystart,ci.ystart + ci.ylen, cubedimension):
                 for zcorner in range (ci.zstart,ci.zstart + ci.zlen, cubedimension):
-                    print("Gettting cube: %d, %d, %d", xcorner, ycorner, zcorner)
+                    print("Gettting cube: ", xcorner, ycorner, zcorner)
                     corner = [xcorner, ycorner, zcorner]
                     step = [ci.xstep, ci.ystep, ci.zstep]
                     cube = Cube(corner, cubesize, step, filterwidth, components)
