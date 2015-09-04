@@ -142,15 +142,15 @@ class OdbcCutout:
         #Prevent hitting outside the bounds of the database here
         if (xmax < (extent[0]+extent[3]+overlap)):
             extent[3] = extent[3] + overlap
-        if (xmax < (extent[1]+extent[4]+overlap)):
+        if (ymax < (extent[1]+extent[4]+overlap)):
             extent[4] = extent[4] + overlap
-        if (xmax < (extent[2]+extent[5]+overlap)):
+        if (zmax < (extent[2]+extent[5]+overlap)):
             extent[5] = extent[5] + overlap
         return extent
 
     def getmaxrange(self, dataset):
         #In the future, these will be pulled from the database, and probably add time range as well
-        if ((dataset == "isotropic1024coarse") or (dataset == "isotropic1024fine") or (dataset == "mixing") or (datset == "mhd1024")):
+        if ((dataset == "isotropic1024coarse") or (dataset == "isotropic1024fine") or (dataset == "mixing") or (dataset == "mhd1024")):
             ranges = (1024, 1024, 1024)
         elif (dataset == "channel"):
             ranges = (2048, 512, 1536)

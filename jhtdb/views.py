@@ -12,6 +12,7 @@ from .models import Dataset
 from jhtdblib import JHTDBLib
 from jhtdblib import CutoutInfo
 from hdfdata import HDFData
+from vtkdata import VTKData
 
 # Create your views here.
 
@@ -89,9 +90,11 @@ def getcutout(request, webargs):
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)
     if (ci.filetype == "vtk"):
-        vtkfile = vtkdata().getvtk(ci)
+        #vtkfile = VTKData().getvtk(ci) #Note: This could be a .vtr, .vti, or .zip depending on the request!
         #Set the filename to the dataset name, and the suffix to the suffix of the temp file
-        response['Content-Disposition'] = 'attachment;filename=' +  ci.dataset +'.' + vtkfile.name.split('.').pop()
+        #response['Content-Disposition'] = 'attachment;filename=' +  ci.dataset +'.' + vtkfile.name.split('.').pop()
+        #Since VTK can have different file types, getvtk makes those decisions and returns the HTTP response with the correct file info.
+        response = VTKData().getvtk(ci)
     else:
         #Serve up an HDF5 file
         h5file = HDFData().gethdf(ci)

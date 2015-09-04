@@ -1,7 +1,8 @@
-from getdata import GetData
 import tempfile
 import h5py
 import numpy as np
+from jhtdb.models import Datafield
+from getdata import GetData
 
 class HDFData:
 
@@ -21,17 +22,24 @@ class HDFData:
             fieldlist = list(ci.datafields)
             print("Fields: %d" % len(fieldlist))
             for field in fieldlist:
+                #We need to get the component size from the database.  
+                print ("Field is: ", field)
+                #import pdb;pdb.set_trace()   
+                components = Datafield.objects.get(shortname=field).components
                 for timestep in range(ci.tstart,ci.tstart+ci.tlen, ci.tstep):
                     #raw = GetData().getrawdata(ci, timestep, field)
-                    #Do this if cutout is too large
-                    raw=GetData().getcubedrawdata(ci, timestep, field)
-                    data = np.frombuffer(raw, dtype=np.float32)
-                    dsetname = field + '{0:05d}'.format(timestep*10)
-                    #We need to get the component size from the database.  Hardcoded for three--fix this!
-                    dset = fh.create_dataset(dsetname, (ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,3), 
-                        maxshape=(ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,3),compression='gzip')
+                    #Cube up the data if it is this large.  
+                    if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255):
+                        #Do this if cutout is too large
+                        data=GetData().getcubedrawdata(ci, timestep, field)
+                    else:
+                        data=GetData().getrawdata(ci, timestep, field)                        
+                    # data = np.frombuffer(raw, dtype=np.float32)
+                    dsetname = field + '{0:05d}'.format(timestep*10)                    
+                    dset = fh.create_dataset(dsetname, (ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,components), 
+                        maxshape=(ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,components),compression='gzip')
                     print ("Data length is: %s" %len(data))
-                    data = data.reshape(ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,3)
+                    data = data.reshape(ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,components)
                     dset[...] = data
         except:
             fh.close()

@@ -19,6 +19,7 @@ class CutoutInfo():
         self.zstep = 1
         self.tstep = 1
         self.filter = 1
+        self.threshold = .5 #not a good default, but we need something here.  Should be overwritten by parsewebargs.
 
 
 class JHTDBLib():
@@ -38,8 +39,22 @@ class JHTDBLib():
         #For computed fields, set component to velocity.
         if ((w[2] == 'vo') or (w[2] == 'qc') or (w[2] == 'cvo') or (w[2] == 'qcc')):
             cutout_info.datafields = 'u'
+            cfieldlist = w[2].split(",")
+            if (len(cfieldlist) > 1):
+                cutout_info.threshold = float(cfieldlist[1])
+            else:
+                #Just in case the user didn't supply anything, we default to the values below.  These are unscientific--just a guess!
+                if (w[2] == 'cvo'):
+                    cutout_info.threshold = .6
+                    cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
+                elif (w[2] =='qcc'):
+                    cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
+                    cutout_info.threshold = .10
         else:
             cutout_info.datafields = w[2]
+        #Set file type
+        if (len(w) >= (7)):
+            cutout_info.filetype = w[7]
         #Look for step parameters
         if (len(w) > 9):
             s = w[8].split(",")
@@ -51,6 +66,17 @@ class JHTDBLib():
         
         return cutout_info
 
+    def getygrid(self):
+        DBSTRING = os.environ['db_channel_string']
+        conn = pyodbc.connect(DBSTRING, autocommit=True)
+        cursor = conn.cursor()
+        rows= cursor.execute("SELECT cell_index, value from grid_points_y ORDER BY cell_index").fetchall()
+        length = len(rows)
+        ygrid = np.zeros((length,1))
+        for row in rows:
+            ygrid[row.cell_index]=row.value
+            conn.close()
+        return ygrid
 
     def createmortonindex(self, z,y,x):
         morton = 0
