@@ -2,10 +2,13 @@ import getdata
 import jhtdblib
 from django.http import HttpResponse
 from jhtdb.models import Datafield
+from jhtdb.models import Dataset
 from getdata import GetData
 from django.core.files.temp import NamedTemporaryFile
 import vtk
 from vtk.util import numpy_support
+import copy 
+import zipfile
 
 class VTKData:
 
@@ -19,17 +22,20 @@ class VTKData:
         if (ci.zstart-overlap >=0):
             ci.zstart = ci.zstart-overlap
             ci.zlen = ci.zlen + overlap
-
-        if (xmax < (ci.xstart+ci.xlen+overlap)):
+        ds = Dataset.objects.get(dbname_text=ci.dataset)
+        if (ds.xend > (ci.xstart+ci.xlen+overlap)):
             ci.xlen = ci.xlen + overlap
-        if (ymax < (ci.ystart+ci.ylen+overlap)):
+        if (ds.yend > (ci.ystart+ci.ylen+overlap)):
             ci.ylen = ci.ylen + overlap
-        if (zmax < (ci.xstart+ci.xlen+overlap)):
+        if (ds.zend > (ci.zstart+ci.zlen+overlap)):
             ci.zlen = ci.zlen + overlap
+        else:
+            print ("zend ztart zlen overlap: ", ds.zend, ci.zstart, ci.zlen, overlap)
+        print ("z is", ci.zlen)
         return ci
     def getvtk(self, ci):
         
-        firstval = ci.datafields[0]
+        firstval = ci.datafields.split(',')[0]
         if ((firstval == 'cvo') or (firstval == 'qcc')): #we may need to return a vtp file
             tmp = NamedTemporaryFile(suffix='.vtp')
             suffix = 'vtp'
@@ -49,12 +55,12 @@ class VTKData:
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
         #if multiple timesteps, zip the file.
-        if ((ci.tlen-ci.tstart) > 1):
+        if (ci.tlen > 1):
             #Write each timestep to file and read it back in.  Seems to be the only way I know how to put all timesteps in one file for now
             #Create a timestep for each file and then send the user a zip file
             ziptmp = NamedTemporaryFile(suffix='.zip')
             z = zipfile.ZipFile(ziptmp.name, 'w')
-            for timestep in range (ci.tstart,ci.tlen, ci.tstep ):            
+            for timestep in range (ci.tstart,ci.tstart+ci.tlen, ci.tstep ):            
                 image = self.getvtkdata(ci, timestep)
                 writer.SetInputData(image)
                 writer.SetFileName(tmp.name)                        
@@ -65,7 +71,9 @@ class VTKData:
             ct = 'application/zip'
             suffix = 'zip'
             response = HttpResponse(ziptmp, content_type=ct)
+            print("Zipping!")
         else:
+            print("Single Timestep")
             image = self.getvtkdata(ci, ci.tstart)
             writer.SetInputData(image)
             writer.SetFileName(tmp.name)                        
@@ -76,7 +84,10 @@ class VTKData:
         return response
 
     def getvtkdata(self, ci, timestep):
-        firstval = ci.datafields[0]
+        firstval = ci.datafields.split(',')[0]
+        overlap = 2
+        print ("First: ", firstval)
+        #import pdb;pdb.set_trace()
         if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'qcc')):
             datafields = 'u'
             
@@ -85,7 +96,8 @@ class VTKData:
                 overlap = 2 #This appears to be what we need.  We need to verify this.
                 #Save a copy of the original request
                 oci = copy.deepcopy(ci)
-                ci = expandcutout(ci) #Expand the cutout by the overlap
+                ci = self.expandcutout(oci, overlap) #Expand the cutout by the overlap
+                print ("z is overlap:", ci.zlen)
                 contour = True #We aren't using this yet.               
         else:
             datafields = ci.datafields #There could be multiple components, so we will have to loop
@@ -94,7 +106,7 @@ class VTKData:
 
         #Check to see if we have a value for vorticity or q contour
         fieldlist = list(datafields)
-
+        image = vtk.vtkImageData()
         for field in fieldlist:
             if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255):
                 #Do this if cutout is too large
@@ -111,7 +123,10 @@ class VTKData:
             image = vtk.vtkImageData()
                 #We need to see if we need to subtract one on end of extent edges.
             image.SetExtent(ci.xstart, ci.xstart+ci.xlen-1, ci.ystart, ci.ystart+ci.ylen-1, ci.zstart, ci.zstart+ci.zlen-1)
-            image.GetPointData().SetVectors(vtkdata)
+            if (components == 3):
+                image.GetPointData().SetVectors(vtkdata)
+            else:
+                image.GetPointData().SetScalars(vtkdata)
             image.SetSpacing(ci.xstep,ci.ystep,ci.zstep)
 
         #Check if we need a rectilinear grid, and set it up if so.
@@ -165,14 +180,14 @@ class VTKData:
             mag.SetInputData(image)
             mag.Update()
             c = vtk.vtkContourFilter()
-            c.SetValue(0,threshold)
+            c.SetValue(0,ci.threshold)
             c.SetInputData(mag.GetOutput())
-            print("Computing Contour")
+            print("Computing Contour with threshold", ci.threshold)
             c.Update()
             #Now we need to clip out the overlap
             box = vtk.vtkBox()    
             #set box to requested size
-            box.SetBounds(oci.xstart, oci.xstart+oci.xlen-1, oci.ystart, oci.ystart+oci.ylen-1, oci.zstart,oci.zstart+oci.zend-1)
+            box.SetBounds(oci.xstart, oci.xstart+oci.xlen-1, oci.ystart, oci.ystart+oci.ylen-1, oci.zstart,oci.zstart+oci.zlen-1)
             clip = vtk.vtkClipPolyData()       
             clip.SetClipFunction(box)
             clip.GenerateClippedOutputOn()
@@ -193,13 +208,14 @@ class VTKData:
             mag.SetInputData(image)
             mag.Update()
             c = vtk.vtkContourFilter()
-            c.SetValue(0,threshold)
+            c.SetValue(0,ci.threshold)
             c.SetInputData(mag.GetOutput())
+            print("Computing Contour with threshold", ci.threshold)
             c.Update()
             #clip out the overlap here
             box = vtk.vtkBox()    
             #set box to requested size
-            box.SetBounds(oci.xstart, oci.xstart+oci.xlen-1, oci.ystart, oci.ystart+oci.ylen-1, oci.zstart,oci.zstart+oci.zend-1)
+            box.SetBounds(oci.xstart, oci.xstart+oci.xlen-1, oci.ystart, oci.ystart+oci.ylen-1, oci.zstart,oci.zstart+oci.zlen-1)
             clip = vtk.vtkClipPolyData()       
             clip.SetClipFunction(box)
             clip.GenerateClippedOutputOn()

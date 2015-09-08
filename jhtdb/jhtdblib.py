@@ -37,12 +37,14 @@ class JHTDBLib():
         cutout_info.zstart = int(w[6].split(',')[0])
         cutout_info.zlen = int(w[6].split(',')[1])
         #For computed fields, set component to velocity.
-        if ((w[2] == 'vo') or (w[2] == 'qc') or (w[2] == 'cvo') or (w[2] == 'qcc')):
-            cutout_info.datafields = 'u'
-            cfieldlist = w[2].split(",")
+        cfieldlist = w[2].split(",")
+        if ((cfieldlist[0] == 'vo') or (cfieldlist[0] == 'qc') or (cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'qcc')):
+            cutout_info.datafields = w[2]
+            
             if (len(cfieldlist) > 1):
                 cutout_info.threshold = float(cfieldlist[1])
             else:
+                print("Threshold not found, defaulting", cfieldlist)
                 #Just in case the user didn't supply anything, we default to the values below.  These are unscientific--just a guess!
                 if (w[2] == 'cvo'):
                     cutout_info.threshold = .6
@@ -52,6 +54,7 @@ class JHTDBLib():
                     cutout_info.threshold = .10
         else:
             cutout_info.datafields = w[2]
+            print("Datafields: ", w[2])
         #Set file type
         if (len(w) >= (7)):
             cutout_info.filetype = w[7]
