@@ -1,6 +1,7 @@
 import numpy as np
 import pyodbc, os
 from jhtdb.models import Datafield
+import time
 
 class Cube:
 
@@ -28,9 +29,12 @@ class Cube:
         DBSTRING = os.environ['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
+        start = time.time()
         cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
             ci.dataset, datafield, timestep, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
-
+        end = time.time()
+        extime = end - start
+        print ("DB Execution time: " + str(extime) + " seconds")
         print (ci.dataset, datafield, timestep, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
 
         row = cursor.fetchone()

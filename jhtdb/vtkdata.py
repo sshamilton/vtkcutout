@@ -3,12 +3,15 @@ import jhtdblib
 from django.http import HttpResponse
 from jhtdb.models import Datafield
 from jhtdb.models import Dataset
+from jhtdb.models import Polycache
 from getdata import GetData
 from django.core.files.temp import NamedTemporaryFile
 import vtk
 from vtk.util import numpy_support
 import copy 
 import zipfile
+import time
+import math
 
 class VTKData:
 
@@ -34,13 +37,14 @@ class VTKData:
         print ("z is", ci.zlen)
         return ci
     def getvtk(self, ci):
-        
+        contour = False
         firstval = ci.datafields.split(',')[0]
         if ((firstval == 'cvo') or (firstval == 'qcc')): #we may need to return a vtp file
             tmp = NamedTemporaryFile(suffix='.vtp')
             suffix = 'vtp'
             writer = vtk.vtkXMLPolyDataWriter()                         
             outfile = ci.filetype + '-contour'
+            contour = True
         elif (ci.dataset == "channel"):
             tmp = NamedTemporaryFile(suffix='.vtr')
             suffix = 'vtr'
@@ -60,8 +64,11 @@ class VTKData:
             #Create a timestep for each file and then send the user a zip file
             ziptmp = NamedTemporaryFile(suffix='.zip')
             z = zipfile.ZipFile(ziptmp.name, 'w')
-            for timestep in range (ci.tstart,ci.tstart+ci.tlen, ci.tstep ):            
-                image = self.getvtkdata(ci, timestep)
+            for timestep in range (ci.tstart,ci.tstart+ci.tlen, ci.tstep ):
+                if (contour == True): #If we have a contour, call the cache version.
+                    image = self.getcachedcontour(ci, timestep)
+                else:     
+                    image = self.getvtkdata(ci, timestep)
                 writer.SetInputData(image)
                 writer.SetFileName(tmp.name)                        
                 writer.Write()
@@ -74,7 +81,10 @@ class VTKData:
             print("Zipping!")
         else:
             print("Single Timestep")
-            image = self.getvtkdata(ci, ci.tstart)
+            if (contour == True): #If we have a contour, call the cache version.
+                image = self.getcachedcontour(ci, ci.tstart)
+            else:     
+                image = self.getvtkdata(ci, ci.tstart)
             writer.SetInputData(image)
             writer.SetFileName(tmp.name)                        
             writer.Write()
@@ -82,7 +92,59 @@ class VTKData:
             response = HttpResponse(tmp, content_type=ct)
         response['Content-Disposition'] = 'attachment;filename=' +  outfile +'.' + suffix
         return response
+    def getcachedcontour(self, ci, timestep):
+        #This is only called on qcc or cvo
+        #cube size should be 256 or 512 for production, using 16 for testing.
+        cubedimension = 16
+        fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
+        print ("Full poly mesh cube size is: ", fullcubesize)
+        corner = [ci.xstart, ci.ystart, ci.zstart]
+        cubesize = [cubedimension, cubedimension, cubedimension]
+        fullcube = vtk.vtkAppendPolyData()
+        #Copy the original request for clipping at the end.
 
+        #We will try to get cached data, or we will use getvtkdata if we miss.  vtkdata does the overlap, so we don't worry about it here.
+        for xcorner in range (ci.xstart,ci.xstart + ci.xlen, cubedimension):
+            for ycorner in range (ci.ystart,ci.ystart + ci.ylen, cubedimension):
+                for zcorner in range (ci.zstart,ci.zstart + ci.zlen, cubedimension):
+                    print("Gettting cube: ", xcorner, ycorner, zcorner)
+                    mortonstart = jhtdblib.JHTDBLib().createmortonindex(xcorner, ycorner, zcorner)
+                    mortonend = jhtdblib.JHTDBLib().createmortonindex(xcorner + cubedimension, ycorner + cubedimension, zcorner + cubedimension)
+                    dataset = Dataset.objects.get(dbname_text=ci.dataset)
+                    #Determine if we have a hit or miss.
+                    cache = Polycache.objects.filter(zindexstart__lte =mortonstart,zindexend__gte = mortonend, dataset=dataset, threshold=ci.threshold)
+                    if (len(cache) > 0): #cache hit, serve up the file
+                        print("Cache hit")
+                        reader = vtk.vtkXMLPolyDataReader()
+                        #import pdb;pdb.set_trace()
+                        reader.SetFileName(cache[0].filename)
+                        vtpcube = reader
+                    else: #Cache miss, grab from db and cache the result
+                        print ("Cache miss")
+                        cubeci = copy.deepcopy(ci)
+                        cubeci.xstart = xcorner
+                        cubeci.ystart = ycorner
+                        cubeci.zstart = zcorner
+                        cubeci.xlen= cubeci.ylen= cubeci.zlen = cubedimension
+                        start = time.time()
+                        vtpcube = self.getvtkdata(cubeci, timestep)
+                        end = time.time()
+                        #Now write to disk
+                        writer = vtk.vtkXMLPolyDataWriter()
+                        vtpfilename = ci.dataset + str(mortonstart) + '-' + str(mortonend)
+                        writer.SetFileName(vtpfilename)
+                        writer.SetInputData(vtpcube.GetOutput())
+                        writer.Write()
+                        
+                        ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0])
+                        ccache.save()
+                        import pdb;pdb.set_trace()
+                    fullcube.AddInputConnection(vtpcube.GetOutputPort())
+        print("Assembling cube")
+        fullcube.Update()
+        return fullcube.GetOutput()
+        #import pdb;pdb.set_trace()
+        
     def getvtkdata(self, ci, timestep):
         firstval = ci.datafields.split(',')[0]
         overlap = 2
@@ -165,6 +227,7 @@ class VTKData:
             print("Computing Vorticity")
             vorticity.Update()
         elif (computation == 'cvo'):
+            start = time.time()
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
@@ -195,9 +258,15 @@ class VTKData:
             clip.InsideOutOn()
             clip.Update()
             cropdata = clip.GetOutput()
-            return cropdata
+            end = time.time()
+            comptime = end-start
+            print("Computation time: " + str(comptime) + "s")
+            #return cropdata
+            #We need the output port for appending, so return the clip instead
+            return clip
 
         elif (computation == 'qcc'):
+            start = time.time()
             q = vtk.vtkGradientFilter()
             q.SetInputData(image)
             q.SetInputScalars(image.FIELD_ASSOCIATION_POINTS,"Velocity")
@@ -223,6 +292,10 @@ class VTKData:
             clip.InsideOutOn()
             clip.Update()
             cropdata = clip.GetOutput()
-            return cropdata
+            end = time.time()
+            comptime = end-start
+            print("Computation time: " + str(comptime) + "s")
+            #return cropdata
+            return clip
         else:
             return image
