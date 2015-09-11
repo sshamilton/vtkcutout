@@ -24,7 +24,7 @@ class Cube:
     def getCubeData(self, ci, datafield, timestep):
         #get this from field data in db
         components = Datafield.objects.get(shortname=datafield).components
-        print("Set componets to ", components)
+        #print("Set componets to ", components)
         #import pdb;pdb.set_trace()
         DBSTRING = os.environ['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
@@ -44,10 +44,10 @@ class Cube:
             row = cursor.fetchone()
             raw = raw + row[0]
             part = part +1
-            print ("added part %d" % part)
-            print ("Part size is %d" % len(row[0]))
-        print ("Raw size is %d" % len(raw))
-        print ("components is %d" % components)
+            #print ("added part %d" % part)
+            #print ("Part size is %d" % len(row[0]))
+        #print ("Raw size is %d" % len(raw))
+        #print ("components is %d" % components)
         self.data = np.frombuffer(raw, dtype=np.float32).reshape([self.zwidth/ci.zstep,self.ywidth/ci.ystep,self.xwidth/ci.xstep,components])
         print("shape = ")
         print (self.data.shape)
@@ -58,8 +58,8 @@ class Cube:
         xoffset = other.xstart#*other.xlen
         yoffset = other.ystart#*other.ylen
         zoffset = other.zstart#*other.zlen
-        print ("Offsets: ", xoffset, yoffset, zoffset)
-        print("size", other.xlen, other.ylen, other.zlen)
+        #print ("Offsets: ", xoffset, yoffset, zoffset)
+        #print("size", other.xlen, other.ylen, other.zlen)
         #zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen
         
         np.copyto ( self.data[zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen,0:self.components], other.data[:,:,:,:] )

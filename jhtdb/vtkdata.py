@@ -95,7 +95,8 @@ class VTKData:
     def getcachedcontour(self, ci, timestep):
         #This is only called on qcc or cvo
         #cube size should be 256 or 512 for production, using 16 for testing.
-        cubedimension = 16
+        path = '/var/www/polycache/'
+        cubedimension = 256
         fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
         print ("Full poly mesh cube size is: ", fullcubesize)
         corner = [ci.xstart, ci.ystart, ci.zstart]
@@ -112,15 +113,18 @@ class VTKData:
                     mortonend = jhtdblib.JHTDBLib().createmortonindex(xcorner + cubedimension, ycorner + cubedimension, zcorner + cubedimension)
                     dataset = Dataset.objects.get(dbname_text=ci.dataset)
                     #Determine if we have a hit or miss.
-                    cache = Polycache.objects.filter(zindexstart__lte =mortonstart,zindexend__gte = mortonend, dataset=dataset, threshold=ci.threshold)
+                    cache = Polycache.objects.filter(zindexstart__lte =mortonstart,zindexend__gte = mortonend, dataset=dataset, threshold=ci.threshold, timestep=timestep)
                     if (len(cache) > 0): #cache hit, serve up the file
-                        print("Cache hit")
+                        #print("Cache hit")
                         reader = vtk.vtkXMLPolyDataReader()
                         #import pdb;pdb.set_trace()
-                        reader.SetFileName(cache[0].filename)
+                        reader.SetFileName(path + cache[0].filename)
+                        print path + cache[0].filename
                         vtpcube = reader
+                         
+                        #import pdb;pdb.set_trace()
                     else: #Cache miss, grab from db and cache the result
-                        print ("Cache miss")
+                        #print ("Cache miss")
                         cubeci = copy.deepcopy(ci)
                         cubeci.xstart = xcorner
                         cubeci.ystart = ycorner
@@ -131,18 +135,31 @@ class VTKData:
                         end = time.time()
                         #Now write to disk
                         writer = vtk.vtkXMLPolyDataWriter()
-                        vtpfilename = ci.dataset + str(mortonstart) + '-' + str(mortonend)
-                        writer.SetFileName(vtpfilename)
+                        vtpfilename = ci.dataset +'-' + str(timestep)+'-'+ str(mortonstart) + '-' + str(mortonend)
+                        writer.SetFileName(path + vtpfilename)
                         writer.SetInputData(vtpcube.GetOutput())
                         writer.Write()
                         
-                        ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0])
+                        ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep)
                         ccache.save()
-                        import pdb;pdb.set_trace()
+                        #import pdb;pdb.set_trace()
                     fullcube.AddInputConnection(vtpcube.GetOutputPort())
-        print("Assembling cube")
-        fullcube.Update()
-        return fullcube.GetOutput()
+        box = vtk.vtkBox()
+        box.SetBounds(ci.xstart, ci.xstart+ci.xlen-1, ci.ystart, ci.ystart+ci.ylen-1, ci.zstart, ci.zstart + ci.zlen-1)
+        fullcube.Update()   
+        clip = vtk.vtkClipPolyData()
+	clip.SetClipFunction(box)
+        clip.GenerateClippedOutputOn()
+        clip.SetInputData(fullcube.GetOutput())
+        clip.InsideOutOn()
+        clip.Update()
+        print clip.GetOutput()
+        print("Cleaning cube (removing duplicate points)")
+        clean = vtk.vtkCleanPolyData()
+        clean.SetInputConnection(clip.GetOutputPort())
+        clean.Update()
+        #import pdb;pdb.set_trace()
+        return clean.GetOutput()
         #import pdb;pdb.set_trace()
         
     def getvtkdata(self, ci, timestep):
@@ -170,7 +187,7 @@ class VTKData:
         fieldlist = list(datafields)
         image = vtk.vtkImageData()
         for field in fieldlist:
-            if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255):
+            if (ci.xlen > 260 and ci.ylen > 260 and ci.zlen > 260):
                 #Do this if cutout is too large
                 data=GetData().getcubedrawdata(ci, timestep, field)
             else:
