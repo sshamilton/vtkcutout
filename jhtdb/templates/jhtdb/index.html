@@ -179,6 +179,7 @@ Filter Width (optional): {{form.filter}}</span>
 <input type="submit" name="Submit" Value="Submit Cutout Parameters" />
 </form>
 <div id="download_link"><a href='{{download_link}}'>{{download_link}}</a></div> 
+
 <script>
 $("#id_dataset").chosen();
 $("#id_datafields").chosen();
@@ -201,6 +202,25 @@ $(document).ready(function() {
   }
   //$('#id_dataset').trigger('change');
   //We can't do the above because it clears out the data fields.
+  //Instead we just put in the values without clearing the datafields (same code) 
+  var dset = $('#id_dataset').val();
+  switch(dset) {
+   {% for dset in dataset_list %}
+   case ('{{dset.dbname_text}}'):
+      //$("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
+      //$("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'}));
+          
+      $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend}})");
+      $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend|add:1}})");
+      $("#x_start_range").text("({{dset.xstart}}-{{dset.xend}})");
+      $("#x_end_range").text("({{dset.xstart|add:1}}-{{dset.xend|add:1}})");
+      $("#y_start_range").text("({{dset.ystart}}-{{dset.yend}})");
+      $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend|add:1}})");
+      $("#z_start_range").text("({{dset.zstart}}-{{dset.zend}})");
+      $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend|add:1}})");
+    break;
+    {% endfor %}
+    }
 
 });
 
@@ -257,69 +277,25 @@ $('#id_dataset').on('change', function() {
    //Clear out any values 
    //alert('changed');
    $("#id_datafields").find('option').remove();
-   if (dset == 'isotropic1024coarse'){
-      $("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      $("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'})); 
-      $("#time_start_range").text("(0-1024)");
-      $("#time_end_range").text("(1-1025)");
-      $("#x_start_range").text("(0-1023)");
-      $("#x_end_range").text("(1-1024)");
-      $("#y_start_range").text("(0-1023)");
-      $("#y_end_range").text("(1-1024)");
-      $("#z_start_range").text("(0-1023)");
-      $("#z_end_range").text("(1-1024)");
-    } 
-   else if (dset == 'isotropic1024fine'){
-      $("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      $("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'})); 
-      $("#time_start_range").text("(0-1024)");
-      $("#time_end_range").text("(1-100)");
-      $("#x_start_range").text("(0-1023)");
-      $("#x_end_range").text("(1-1024)");
-      $("#y_start_range").text("(0-1023)");
-      $("#y_end_range").text("(1-1024)");
-      $("#z_start_range").text("(0-1023)");
-      $("#z_end_range").text("(1-1024)");
- 
-    }
-   else if (dset == 'channel'){
-      $("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      $("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'})); 
-      $("#time_start_range").text("(0-3999)");
-      $("#time_end_range").text("(1-4000)");
-      $("#x_start_range").text("(0-2047)");
-      $("#x_end_range").text("(1-2048)");
-      $("#y_start_range").text("(0-511)");
-      $("#y_end_range").text("(1-512)");
-      $("#z_start_range").text("(0-1535)");
-      $("#z_end_range").text("(1-1536)");
-    }
-   else if (dset == 'mhd1024'){
-      $("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      $("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'}));
-      $("#id_datafields").append($("<option>", {value: 'b', text: 'Magnetic Field'}));
-      $("#id_datafields").append($("<option>", {value: 'a', text: 'VectorPotential'})); 
-      $("#time_start_range").text("(0-1024)");
-      $("#time_end_range").text("(1-1025)");
-      $("#x_start_range").text("(0-1023)");
-      $("#x_end_range").text("(1-1024)");
-      $("#y_start_range").text("(0-1023)");
-      $("#y_end_range").text("(1-1024)");
-      $("#z_start_range").text("(0-1023)");
-      $("#z_end_range").text("(1-1024)");
-    } 
-    else if (dset == 'mixing'){
-      $("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      $("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'}));
-      $("#id_datafields").append($("<option>", {value: 'd', text: 'Density'}));
-      $("#time_start_range").text("(0-1011)");
-      $("#time_end_range").text("(1-1025)");
-      $("#x_start_range").text("(0-1012)");
-      $("#x_end_range").text("(1-1024)");
-      $("#y_start_range").text("(0-1023)");
-      $("#y_end_range").text("(1-1024)");
-      $("#z_start_range").text("(0-1023)");
-      $("#z_end_range").text("(1-1024)");
+   
+   switch(dset) {
+   {% for dset in dataset_list %}
+   case ('{{dset.dbname_text}}'):
+      //$("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
+      //$("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'})); 
+      {% for dfield in dset.datafield_set.all %}
+           $("#id_datafields").append($("<option>", {value: '{{dfield.shortname}}', text: '{{dfield.longname}}'})); 
+      {% endfor %}
+      $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend}})");
+      $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend|add:1}})");
+      $("#x_start_range").text("({{dset.xstart}}-{{dset.xend}})");
+      $("#x_end_range").text("({{dset.xstart|add:1}}-{{dset.xend|add:1}})");
+      $("#y_start_range").text("({{dset.ystart}}-{{dset.yend}})");
+      $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend|add:1}})");
+      $("#z_start_range").text("({{dset.zstart}}-{{dset.zend}})");
+      $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend|add:1}})");
+    break;
+    {% endfor %}
     }
 
    
