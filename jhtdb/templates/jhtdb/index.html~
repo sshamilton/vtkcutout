@@ -186,10 +186,8 @@ Filter Width (optional): {{form.filter}}</span>
 
 <script>
         
-        $( "#cutout_form" ).validate();
-</script>
+$( "#cutout_form" ).validate();
 
-<script>
 $("#id_dataset").chosen();
 $("#id_datafields").chosen();
 $("#id_cdatafields").chosen();
@@ -310,6 +308,8 @@ $('#id_dataset').on('change', function() {
       $("#id_y").rules("add", {required: true, range: [{{dset.ystart}}, {{dset.yend}}]  });
       $("#id_z").rules("remove");
       $("#id_z").rules("add", {required: true, range: [{{dset.zstart}}, {{dset.zend}}]  });
+      $("#id_timestart").rules("remove");
+      $("#id_timestart").rules("add", {required: true, range: [{{dset.tstart}}, {{dset.timeend}}]  });
     break;
     {% endfor %}
     }
