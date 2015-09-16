@@ -20,8 +20,9 @@ from vtkdata import VTKData
 class CutoutForm(forms.Form):
     token = forms.CharField(label = 'token', max_length=50)
     fileformat = forms.ChoiceField(choices=[('vtk', 'VTK'), ('hdf5', 'HDF5')])
-    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all().order_by('dataset_text'), to_field_name="dbname_text")
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all().order_by('dataset_text'), to_field_name="dbname_text", help_text="Choose a dataset")
     #datafields = forms.MultipleChoiceField(choices=[('u', 'Velocity'), ('p', 'Pressure')])
+    #datafields = forms.MultipleChoiceField()
     datafields = forms.ModelMultipleChoiceField(queryset=Datafield.objects.all(), to_field_name ="shortname")
     cdatafields = forms.ChoiceField(choices=[('', '---------'),
         ('vo', 'Vorticity'),

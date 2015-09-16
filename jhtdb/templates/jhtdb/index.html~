@@ -8,6 +8,7 @@ Turbulence Expanded cutout service
 <script type="text/javascript" src="/static/scripts/jquery-validation-1.14.0/dist/additional-methods.min.js"></script>
 
 <link rel="stylesheet" href="/static/scripts/chosen.css">
+<link rel="stylesheet" href="/static/scripts/jquery-validation-1.14.0/demo/site-demos.css">
 
 <style>
 #id_dataset {
@@ -185,16 +186,56 @@ Filter Width (optional): {{form.filter}}</span>
 <div id="download_link"><a href='{{download_link}}'>{{download_link}}</a></div> 
 
 <script>
-        
-$( "#cutout_form" ).validate();
 
-$("#id_dataset").chosen();
+
+
+$("#id_dataset").chosen();  //Chosen and validate don't play well together.
 $("#id_datafields").chosen();
 $("#id_cdatafields").chosen();
 $("#id_fileformat").chosen();
 $('.step').hide();
-$("#cutout_form").validate();
+ 
 $(document).ready(function() {
+    //Fix dataset issue with chosen and validate
+  $.validator.setDefaults({ ignore: ":hidden:not(select)" })
+
+  $( "#cutout_form" ).validate({
+     submitHandler: function (form) {  
+            //alert('Press ok for url');
+            /* url = "http://" + server + "/jhtdb/getcutout/"+ token + "/" + dataset + "/" + datafields + "/" + ts + "," +te + "/" + xs + "," + xe +"/" + ys + "," + ye +"/" + zs + "," + ze + "/" + filetype + "/"*/
+            server = '{{ request.META.HTTP_HOST }}';
+            if ($("#id_datafields").val() != null && $("#id_datafields").val() != "") {
+                datafields = $("#id_datafields").val();
+                 
+            }
+            else if ($("#id_cdatafields").val() != null  && $("#id_cdatafields").val() != "") {
+                datafields = $("#id_cdatafields").val() + "," + $("#id_threshold").val();
+                    
+            }
+            else {
+            //Nothing checked, Inform client
+                alert('Choose a data field or computed field.');
+                return false;
+            };
+            step = ""
+            if ($("#id_step_checkbox").is(':checked')){
+               step = $("#id_tstep").val() + "," + $("#id_xstep").val() + "," + $("#id_ystep").val() + "," + $("#id_zstep").val() + "/" + $("#id_filter").val() + "/";
+            }
+            url = "http://" +server + "/jhtdb/getcutout/" + $("#id_token").val() + "/" + $("#id_dataset").val() + "/" +
+            datafields + "/" + $("#id_timestart").val() +","+ $("#id_timeend").val() + "/" + $("#id_x").val() + "," + $("#id_xEnd").val()
+            +"/" + $("#id_y").val() + "," + $("#id_yEnd").val() +"/" + $("#id_z").val() + "," + $("#id_zEnd").val() + "/" + 
+            $("#id_fileformat").val() + "/" + step;
+            $("#download_link").replaceWith("<a href='" + url + "' id='download_link'>" +url + "</a>");
+            //We never actually post this form since all logic is now handled in javascript. 
+            return false;
+        }
+    }
+  );
+
+  $("#id_token").rules("add", {required: true});
+  $("#id_dataset").rules("add", {required: true});
+
+  
   if($("#id_step_checkbox").is(':checked')){ 
     $('.step').show();
   }
@@ -211,12 +252,18 @@ $(document).ready(function() {
   //We can't do the above because it clears out the data fields.
   //Instead we just put in the values without clearing the datafields (same code) 
   var dset = $('#id_dataset').val();
+  
   switch(dset) {
    {% for dset in dataset_list %}
    case ('{{dset.dbname_text}}'):
-      //$("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      //$("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'}));
-          
+      $('#id_datafields option').remove();
+      alert('setting dset:' + dset);
+         
+      {% for dfield in dset.datafield_set.all %}
+           $("#id_datafields").append($("<option>", {value: '{{dfield.shortname}}', text: '{{dfield.longname}}'})); 
+           
+      {% endfor %}
+    
       $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend}})");
       $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend|add:1}})");
       $("#x_start_range").text("({{dset.xstart}}-{{dset.xend}})");
@@ -228,7 +275,7 @@ $(document).ready(function() {
     break;
     {% endfor %}
     }
-
+    $('#id_datafields').trigger('chosen:updated');
 });
 
 
@@ -288,8 +335,7 @@ $('#id_dataset').on('change', function() {
    switch(dset) {
    {% for dset in dataset_list %}
    case ('{{dset.dbname_text}}'):
-      //$("#id_datafields").append($("<option>", {value: 'u', text: 'Velocity'}));
-      //$("#id_datafields").append($("<option>", {value: 'p', text: 'Pressure'})); 
+
       {% for dfield in dset.datafield_set.all %}
            $("#id_datafields").append($("<option>", {value: '{{dfield.shortname}}', text: '{{dfield.longname}}'})); 
       {% endfor %}
@@ -310,6 +356,15 @@ $('#id_dataset').on('change', function() {
       $("#id_z").rules("add", {required: true, range: [{{dset.zstart}}, {{dset.zend}}]  });
       $("#id_timestart").rules("remove");
       $("#id_timestart").rules("add", {required: true, range: [{{dset.tstart}}, {{dset.timeend}}]  });
+
+      $("#id_xEnd").rules("remove");
+      $("#id_xEnd").rules("add", {required: true, range: [{{dset.xstart|add:1}}, {{dset.xend|add:1}}]  });
+      $("#id_yEnd").rules("remove");
+      $("#id_yEnd").rules("add", {required: true, range: [{{dset.ystart|add:1}}, {{dset.yend|add:1}}]  });
+      $("#id_zEnd").rules("remove");
+      $("#id_zEnd").rules("add", {required: true, range: [{{dset.zstart|add:1}}, {{dset.zend|add:1}}]  });
+      $("#id_timeend").rules("remove");
+      $("#id_timeend").rules("add", {required: true, range: [{{dset.tstart|add:1}}, {{dset.timeend|add:1}}]  });
     break;
     {% endfor %}
     }
