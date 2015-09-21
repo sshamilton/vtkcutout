@@ -99,15 +99,15 @@ class VTKData:
         cubedimension = 256
         fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
         print ("Full poly mesh cube size is: ", fullcubesize)
-        corner = [ci.xstart, ci.ystart, ci.zstart]
+        #The corner of the cube must be a multiple of the cubedimension.
+        corner = [ci.xstart-ci.xstart%cubedimension, ci.ystart-ci.xstart%cubedimension, ci.zstart-ci.xstart%cubedimension]
         cubesize = [cubedimension, cubedimension, cubedimension]
         fullcube = vtk.vtkAppendPolyData()
-        #Copy the original request for clipping at the end.
 
         #We will try to get cached data, or we will use getvtkdata if we miss.  vtkdata does the overlap, so we don't worry about it here.
-        for xcorner in range (ci.xstart,ci.xstart + ci.xlen, cubedimension):
-            for ycorner in range (ci.ystart,ci.ystart + ci.ylen, cubedimension):
-                for zcorner in range (ci.zstart,ci.zstart + ci.zlen, cubedimension):
+        for xcorner in range (ci.xstart-ci.xstart%cubedimension,ci.xstart + ci.xlen, cubedimension):
+            for ycorner in range (ci.ystart-ci.ystart%cubedimension,ci.ystart + ci.ylen, cubedimension):
+                for zcorner in range (ci.zstart-ci.zstart%cubedimension,ci.zstart + ci.zlen, cubedimension):
                     print("Gettting cube: ", xcorner, ycorner, zcorner)
                     mortonstart = jhtdblib.JHTDBLib().createmortonindex(xcorner, ycorner, zcorner)
                     mortonend = jhtdblib.JHTDBLib().createmortonindex(xcorner + cubedimension, ycorner + cubedimension, zcorner + cubedimension)
@@ -160,7 +160,6 @@ class VTKData:
         clean.Update()
         #import pdb;pdb.set_trace()
         return clean.GetOutput()
-        #import pdb;pdb.set_trace()
         
     def getvtkdata(self, ci, timestep):
         firstval = ci.datafields.split(',')[0]
