@@ -9,6 +9,7 @@ import h5py
 import zipfile
 
 from .models import Dataset
+from .models import Datafield
 from jhtdblib import JHTDBLib
 from jhtdblib import CutoutInfo
 from hdfdata import HDFData
@@ -19,8 +20,10 @@ from vtkdata import VTKData
 class CutoutForm(forms.Form):
     token = forms.CharField(label = 'token', max_length=50)
     fileformat = forms.ChoiceField(choices=[('vtk', 'VTK'), ('hdf5', 'HDF5')])
-    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all().order_by('dataset_text'), to_field_name="dbname_text")
-    datafields = forms.MultipleChoiceField(choices=[('u', 'Velocity'), ('p', 'Pressure')])
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all().order_by('dataset_text'), to_field_name="dbname_text", help_text="Choose a dataset")
+    #datafields = forms.MultipleChoiceField(choices=[('u', 'Velocity'), ('p', 'Pressure')])
+    #datafields = forms.MultipleChoiceField()
+    datafields = forms.ModelMultipleChoiceField(queryset=Datafield.objects.all(), to_field_name ="shortname")
     cdatafields = forms.ChoiceField(choices=[('', '---------'),
         ('vo', 'Vorticity'),
         ('qc', 'Q-Criterion'),
@@ -75,12 +78,15 @@ def index(request):
             url = url + "/" + request.POST.get("tstep") + "," + request.POST.get("xstep") + "," + request.POST.get("ystep") + "," + request.POST.get("zstep") + "/" + request.POST.get("filter") 
         download_link = url
         dataset_list = Dataset.objects.order_by('dataset_text')
+        datafield_list = Datafield.objects.order_by('longname')
         form = CutoutForm(request.POST)
-        context = RequestContext(request, { 'dataset_list': dataset_list, 'download_link': download_link, 'form': form}) 
+        context = RequestContext(request, {'datafield_list': datafield_list, 'dataset_list': dataset_list, 'download_link': download_link, 'form': form}) 
     else:
         form = CutoutForm()
+        datafield_list = Datafield.objects.order_by('longname')
         download_link = "Link: " #placeholder until download link is generated
-        context = RequestContext(request, { 'dataset_list': dataset_list, 'form': form}) 
+        #import pdb;pdb.set_trace()
+        context = RequestContext(request, { 'datafield_list': datafield_list, 'dataset_list': dataset_list, 'form': form}) 
     return HttpResponse(template.render(context))
 
 def getcutout(request, webargs):
