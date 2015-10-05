@@ -37,7 +37,7 @@ class Polycache(models.Model):
     filename = models.CharField(max_length=50)
     compute_time = models.IntegerField(default = 0)
     cache_date = models.DateTimeField
-    threshold = models.IntegerField(default = 0)
+    threshold = models.FloatField(default = 0)
     timestep = models.IntegerField(default = 0)
     dataset = models.ForeignKey(Dataset)
     computation = models.CharField(max_length=5, default = 'cvo') #Set to qcc or cvo depending on the calculation

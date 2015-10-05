@@ -1,4 +1,7 @@
 #various definitions needed for the cutout service
+import os
+import pyodbc
+import numpy as np
 
 class CutoutInfo():
     def __init__(self):
@@ -28,6 +31,7 @@ class JHTDBLib():
         cutout_info = CutoutInfo()
         w = webargs.split("/")
         cutout_info.dataset = w[1]
+        cutout_info.authtoken= w[0]
         cutout_info.tstart = int(w[3].split(',')[0])
         cutout_info.tlen = int(w[3].split(',')[1])
         cutout_info.xstart = int(w[4].split(',')[0])
@@ -69,6 +73,21 @@ class JHTDBLib():
         
         return cutout_info
 
+    def verify(self, authtoken):
+        DBSTRING = os.environ['db_connection_string']
+        conn = pyodbc.connect(DBSTRING, autocommit=True)
+        cursor = conn.cursor()
+        query = "SELECT uid, limit FROM turbinfo..users WHERE authkey = '" + str(authtoken) + "'"
+        print ("Query: " + query)
+        rows = cursor.execute(query).fetchall()
+        if (len(rows) > 0):
+            conn.close()
+            return True
+        else:
+            conn.close()
+            return False
+
+
     def getygrid(self):
         DBSTRING = os.environ['db_channel_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
@@ -78,7 +97,7 @@ class JHTDBLib():
         ygrid = np.zeros((length,1))
         for row in rows:
             ygrid[row.cell_index]=row.value
-            conn.close()
+        conn.close()    
         return ygrid
 
     def createmortonindex(self, z,y,x):

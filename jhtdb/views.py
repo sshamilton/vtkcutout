@@ -16,7 +16,6 @@ from hdfdata import HDFData
 from vtkdata import VTKData
 
 # Create your views here.
-
 class CutoutForm(forms.Form):
     token = forms.CharField(label = 'token', max_length=50)
     fileformat = forms.ChoiceField(choices=[('vtk', 'VTK'), ('hdf5', 'HDF5')])
@@ -94,21 +93,23 @@ def getcutout(request, webargs):
     jhlib = JHTDBLib()
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)
-    if (ci.filetype == "vtk"):
-        #vtkfile = VTKData().getvtk(ci) #Note: This could be a .vtr, .vti, or .zip depending on the request!
-        #Set the filename to the dataset name, and the suffix to the suffix of the temp file
-        #response['Content-Disposition'] = 'attachment;filename=' +  ci.dataset +'.' + vtkfile.name.split('.').pop()
-        #Since VTK can have different file types, getvtk makes those decisions and returns the HTTP response with the correct file info.
-        response = VTKData().getvtk(ci)
+    #Verify token
+    if (jhlib.verify(ci.authtoken)):
+        if (ci.filetype == "vtk"):
+            #vtkfile = VTKData().getvtk(ci) #Note: This could be a .vtr, .vti, or .zip depending on the request!
+            #Set the filename to the dataset name, and the suffix to the suffix of the temp file
+            #response['Content-Disposition'] = 'attachment;filename=' +  ci.dataset +'.' + vtkfile.name.split('.').pop()
+            #Since VTK can have different file types, getvtk makes those decisions and returns the HTTP response with the correct file info.
+            response = VTKData().getvtk(ci)
+        else:
+            #Serve up an HDF5 file
+            h5file = HDFData().gethdf(ci)
+            response = HttpResponse(h5file, content_type='data/hdf5')
+            attach = 'attachment;filename=' + ci.dataset + '.h5'
+            response['Content-Disposition'] = attach
     else:
-        #Serve up an HDF5 file
-        h5file = HDFData().gethdf(ci)
-        response = HttpResponse(h5file, content_type='data/hdf5')
-        attach = 'attachment;filename=' + ci.dataset + '.h5'
-        response['Content-Disposition'] = attach
+        response = HttpResponse("Error: token is invalid")
     return response
-
-
 
 
 

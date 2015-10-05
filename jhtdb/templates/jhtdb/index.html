@@ -1,8 +1,7 @@
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>Johns Hopkins Turbulence Databases (JHTDB)</title>
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+<head><title>Johns Hopkins Turbulence Databases (JHTDB)</title> 
 
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-Turbulence Expanded cutout service
 <script type="text/javascript" src="/static/scripts/chosen.jquery.min.js"></script>
 <script type="text/javascript" src="/static/scripts/jquery-validation-1.14.0/dist/jquery.validate.min.js"></script>
 <script type="text/javascript" src="/static/scripts/jquery-validation-1.14.0/dist/additional-methods.min.js"></script>
@@ -53,6 +52,7 @@ Turbulence Expanded cutout service
 
 </style>
 </head>
+<body>
 <form method="POST" id="cutout_form" />{% csrf_token %}
 <table>
 <tr><td>Authorization Token:</td><td>
@@ -181,13 +181,37 @@ Threshold: {{form.threshold}}
 <span class="step">
 Filter Width (optional): {{form.filter}}</span>
 <br />
+<div id="download_link"><a href='{{download_link}}'>{{download_link}}</a></div> 
+<br />
+<div id="downloadsize"></div>
+<br />
 <input type="submit" name="Submit" Value="Submit Cutout Parameters" />
 </form>
-<div id="download_link"><a href='{{download_link}}'>{{download_link}}</a></div> 
 
 <script>
 
+function calcSize() {
+   components = 3
+   size = $("#id_xEnd").val() * $("#id_yEnd").val() * $("#id_zEnd").val() * components * $("#id_timeend").val();
+   $("#downloadsize").replaceWith("<div id='downloadsize'>Approximate Size (uncompressed): " + formatSize(size) + "</div>");
+}
 
+function formatSize(size) {
+   var text;
+    if (size >= 10 * 1024 * 1024 * 1024) {
+    text = (size / 1024 / 1024 / 1024) + "GB";
+    }
+    else if (size >= 10 * 1024 * 1024) {
+        text = (size / 1024 / 1024) + "MB";
+    }
+    else if (size >= 10 * 1024) {
+        text = (size / 1024) + "KB";
+    }
+    else {
+        text = (size) + "B";
+    }
+    return text;
+}
 
 $("#id_dataset").chosen();  //Chosen and validate don't play well together.
 $("#id_datafields").chosen();
@@ -226,6 +250,8 @@ $(document).ready(function() {
             +"/" + $("#id_y").val() + "," + $("#id_yEnd").val() +"/" + $("#id_z").val() + "," + $("#id_zEnd").val() + "/" + 
             $("#id_fileformat").val() + "/" + step;
             $("#download_link").replaceWith("<a href='" + url + "' id='download_link'>" +url + "</a>");
+            //Update size
+            calcSize();
             //We never actually post this form since all logic is now handled in javascript. 
             return false;
         }
@@ -257,8 +283,6 @@ $(document).ready(function() {
    {% for dset in dataset_list %}
    case ('{{dset.dbname_text}}'):
       $('#id_datafields option').remove();
-      alert('setting dset:' + dset);
-         
       {% for dfield in dset.datafield_set.all %}
            $("#id_datafields").append($("<option>", {value: '{{dfield.shortname}}', text: '{{dfield.longname}}'})); 
            
@@ -378,5 +402,6 @@ $('#id_dataset').on('change', function() {
 
 });
 </script>
-
+</body>
+</html>
 
