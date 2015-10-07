@@ -55,7 +55,7 @@ class VTKData:
             tmp = NamedTemporaryFile(suffix='.vti')
             suffix = 'vti'
             writer = vtk.vtkXMLImageDataWriter()                        
-            outfile = 'cutout' + ci.filetype        
+            outfile = ci.dataset        
         writer.SetFileName(tmp.name)
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
@@ -122,8 +122,7 @@ class VTKData:
                         reader.SetFileName(path + cache[0].filename)
                         print path + cache[0].filename
                         vtpcube = reader
-                         
-                        #import pdb;pdb.set_trace()
+  
                     else: #Cache miss, grab from db and cache the result
                         print ("Cache miss")
                         cubeci = copy.deepcopy(ci)
@@ -159,7 +158,6 @@ class VTKData:
         clean = vtk.vtkCleanPolyData()
         clean.SetInputConnection(clip.GetOutputPort())
         clean.Update()
-        #import pdb;pdb.set_trace()
         return clean.GetOutput()
         
     def getvtkdata(self, ci, timestep):
@@ -167,7 +165,6 @@ class VTKData:
         firstval = ci.datafields.split(',')[0]
         overlap = 2
         print ("First: ", firstval)
-        #import pdb;pdb.set_trace()
         if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'qcc')):
             datafields = 'u'
             
@@ -193,21 +190,15 @@ class VTKData:
                 #Do this if cutout is too large
                 data=GetData().getcubedrawdata(ci, timestep, field)
             else:
-                data=GetData().getrawdata(ci, timestep, field)        
-            #This no longer works since we have a formatted numpy array.
-            #vtkdata = numpy_support.numpy_to_vtk(data, deep=True, array_type=vtk.VTK_FLOAT)
-            vtkdata = numpy_support.numpy_to_vtk(data.flat, deep=True, array_type=vtk.VTK_FLOAT)
-
+                data=GetData().getrawdata(ci, timestep, field)                  
+            vtkdata = numpy_support.numpy_to_vtk(data.flat, deep=True, array_type=vtk.VTK_FLOAT)            
             components = Datafield.objects.get(shortname=field).components
             vtkdata.SetNumberOfComponents(components)
-            vtkdata.SetName(Datafield.objects.get(shortname=field).longname)
-            image = vtk.vtkImageData()
+            vtkdata.SetName(Datafield.objects.get(shortname=field).longname)            
                 #We need to see if we need to subtract one on end of extent edges.
-            image.SetExtent(ci.xstart, ci.xstart+int(ci.xlen/ci.xstep)-1, ci.ystart, ci.ystart+int(ci.ylen/ci.ystep)-1, ci.zstart, ci.zstart+int(ci.zlen/ci.zstep)-1)
-            if (components == 3):
-                image.GetPointData().AddArray(vtkdata)
-            else:
-                image.GetPointData().AddArray(vtkdata)
+            image.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
+            #image.SetExtent(ci.xstart, ci.xstart+int(ci.xlen)-1, ci.ystart, ci.ystart+int(ci.ylen)-1, ci.zstart, ci.zstart+int(ci.zlen)-1)
+            image.GetPointData().AddArray(vtkdata)
             image.SetSpacing(ci.xstep,ci.ystep,ci.zstep)
 
             #Check if we need a rectilinear grid, and set it up if so.
@@ -217,15 +208,12 @@ class VTKData:
                 #print (ygrid)
                 
                 #Not sure about contouring channel yet, so we are going back to original variables at this point.
-                rg.SetExtent(ci.xstart, ci.xstart+int(ci.xlen/ci.xstep)-1, ci.ystart, ci.ystart+int(ci.ylen/ci.ystep)-1, ci.zstart, ci.zstart+int(ci.zlen/ci.zstep)-1)
+                rg.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
                 #components = Datafield.objects.get(shortname=field).components
                 #vtkdata.SetNumberOfComponents(components)
                 #vtkdata.SetName(Datafield.objects.get(shortname=field).longname)
-                if (components == 3):
-                    rg.GetPointData().AddArray(vtkdata)
-                else:
-                    rg.GetPointData().AddArray(vtkdata)
-                import pdb;pdb.set_trace()
+                rg.GetPointData().AddArray(vtkdata)
+                #import pdb;pdb.set_trace()
                 #This isn't possible--we will have to do something about this in the future.
                 #rg.SetSpacing(ci.xstep,ci.ystep,ci.zstep)
                 xg = np.arange(float(ci.xstart),float(ci.xlen))

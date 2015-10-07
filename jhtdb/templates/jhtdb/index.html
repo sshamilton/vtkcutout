@@ -288,14 +288,14 @@ $(document).ready(function() {
            
       {% endfor %}
     
-      $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend}})");
-      $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend|add:1}})");
-      $("#x_start_range").text("({{dset.xstart}}-{{dset.xend}})");
-      $("#x_end_range").text("({{dset.xstart|add:1}}-{{dset.xend|add:1}})");
-      $("#y_start_range").text("({{dset.ystart}}-{{dset.yend}})");
-      $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend|add:1}})");
-      $("#z_start_range").text("({{dset.zstart}}-{{dset.zend}})");
-      $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend|add:1}})");
+      $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend|add:-1}})");
+      $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend}})");
+      $("#x_start_range").text("({{dset.xstart}}-{{dset.xend|add:-1}})");
+      $("#x_end_range").text("({{dset.xstart|add:1}}-{{dset.xend}})");
+      $("#y_start_range").text("({{dset.ystart}}-{{dset.yend|add:-1}})");
+      $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend}})");
+      $("#z_start_range").text("({{dset.zstart}}-{{dset.zend|add:-1}})");
+      $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend}})");
     break;
     {% endfor %}
     }
@@ -363,32 +363,32 @@ $('#id_dataset').on('change', function() {
       {% for dfield in dset.datafield_set.all %}
            $("#id_datafields").append($("<option>", {value: '{{dfield.shortname}}', text: '{{dfield.longname}}'})); 
       {% endfor %}
-      $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend}})");
-      $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend|add:1}})");
-      $("#x_start_range").text("({{dset.xstart}}-{{dset.xend}})");
-      $("#x_end_range").text("({{dset.xstart|add:1}}-{{dset.xend|add:1}})");
-      $("#y_start_range").text("({{dset.ystart}}-{{dset.yend}})");
-      $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend|add:1}})");
-      $("#z_start_range").text("({{dset.zstart}}-{{dset.zend}})");
-      $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend|add:1}})");
+      $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend|add:-1}})");
+      $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend}})");
+      $("#x_start_range").text("({{dset.xstart}}-{{dset.xend|add:-1}})");
+      $("#x_end_range").text("({{dset.xstart|add:1}}-{{dset.xend}})");
+      $("#y_start_range").text("({{dset.ystart}}-{{dset.yend|add:-1}})");
+      $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend}})");
+      $("#z_start_range").text("({{dset.zstart}}-{{dset.zend|add:-1}})");
+      $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend}})");
       //Update form validation
       $("#id_x").rules("remove");
-      $("#id_x").rules("add", {required: true, range: [{{dset.xstart}}, {{dset.xend}}]  });
+      $("#id_x").rules("add", {required: true, range: [{{dset.xstart}}, {{dset.xend|add:-1}}]  });
       $("#id_y").rules("remove");
-      $("#id_y").rules("add", {required: true, range: [{{dset.ystart}}, {{dset.yend}}]  });
+      $("#id_y").rules("add", {required: true, range: [{{dset.ystart}}, {{dset.yend|add:-1}}]  });
       $("#id_z").rules("remove");
-      $("#id_z").rules("add", {required: true, range: [{{dset.zstart}}, {{dset.zend}}]  });
+      $("#id_z").rules("add", {required: true, range: [{{dset.zstart}}, {{dset.zend|add:-1}}]  });
       $("#id_timestart").rules("remove");
-      $("#id_timestart").rules("add", {required: true, range: [{{dset.tstart}}, {{dset.timeend}}]  });
+      $("#id_timestart").rules("add", {required: true, range: [{{dset.tstart}}, {{dset.timeend|add:-1}}]  });
 
       $("#id_xEnd").rules("remove");
-      $("#id_xEnd").rules("add", {required: true, range: [{{dset.xstart|add:1}}, {{dset.xend|add:1}}]  });
+      $("#id_xEnd").rules("add", {required: true, range: [{{dset.xstart|add:1}}, {{dset.xend}}]  });
       $("#id_yEnd").rules("remove");
-      $("#id_yEnd").rules("add", {required: true, range: [{{dset.ystart|add:1}}, {{dset.yend|add:1}}]  });
+      $("#id_yEnd").rules("add", {required: true, range: [{{dset.ystart|add:1}}, {{dset.yend}}]  });
       $("#id_zEnd").rules("remove");
-      $("#id_zEnd").rules("add", {required: true, range: [{{dset.zstart|add:1}}, {{dset.zend|add:1}}]  });
+      $("#id_zEnd").rules("add", {required: true, range: [{{dset.zstart|add:1}}, {{dset.zend}}]  });
       $("#id_timeend").rules("remove");
-      $("#id_timeend").rules("add", {required: true, range: [{{dset.tstart|add:1}}, {{dset.timeend|add:1}}]  });
+      $("#id_timeend").rules("add", {required: true, range: [{{dset.tstart|add:1}}, {{dset.timeend}}]  });
     break;
     {% endfor %}
     }

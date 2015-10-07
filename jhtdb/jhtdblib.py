@@ -65,11 +65,11 @@ class JHTDBLib():
         #Look for step parameters
         if (len(w) > 9):
             s = w[8].split(",")
-            cutout_info.tstep = s[0]
-            cutout_info.xstep = float(s[1])
-            cutout_info.ystep = float(s[2])
-            cutout_info.zstep = float(s[3])
-            cutout_info.filterwidth = w[9]
+            cutout_info.tstep = int(s[0])
+            cutout_info.xstep = int(s[1])
+            cutout_info.ystep = int(s[2])
+            cutout_info.zstep = int(s[3])
+            cutout_info.filterwidth = int(w[9])
         
         return cutout_info
 

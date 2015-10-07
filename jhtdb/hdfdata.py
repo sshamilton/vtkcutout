@@ -35,11 +35,16 @@ class HDFData:
                     else:
                         data=GetData().getrawdata(ci, timestep, field)                        
                     # data = np.frombuffer(raw, dtype=np.float32)
-                    dsetname = field + '{0:05d}'.format(timestep*10)                    
-                    dset = fh.create_dataset(dsetname, (ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,components), 
-                        maxshape=(ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,components),compression='gzip')
+                    dsetname = field + '{0:05d}'.format(timestep*10)
+                    shape = [0]*3
+                    shape[0] = (ci.zlen+ci.zstep-1)/ci.zstep                    
+                    shape[1] = (ci.ylen+ci.ystep-1)/ci.ystep                    
+                    shape[2] = (ci.xlen+ci.xstep-1)/ci.xstep                    
+                    dset = fh.create_dataset(dsetname, (shape[0], shape[1], shape[2],components),
+                        maxshape=(shape[0], shape[1], shape[2],components),compression='gzip')
                     print ("Data length is: %s" %len(data))
-                    data = data.reshape(ci.zlen/ci.zstep,ci.ylen/ci.ystep,ci.xlen/ci.xstep,components)
+                    import pdb;pdb.set_trace()
+                    data = data.reshape(shape[0], shape[1], shape[2],components)
                     dset[...] = data
         except:
             fh.close()
