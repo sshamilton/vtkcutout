@@ -12,6 +12,8 @@ class Dataset(models.Model):
     yend = models.IntegerField(default = 1024)
     zend = models.IntegerField(default = 1024)
     timeend = models.IntegerField(default = 1024)
+    timefactor = models.IntegerField(default = 1)
+    defaultthreshold = models.FloatField(default = 23.0)
     
 
     def __unicode__(self):

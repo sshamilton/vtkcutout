@@ -205,7 +205,7 @@ class VTKData:
             if (ci.dataset == 'channel'):
                 ygrid = jhtdblib.JHTDBLib().getygrid()
                 #print("Ygrid: ")
-                #print (ygrid)
+                #print (ygrid)Jas
                 
                 #Not sure about contouring channel yet, so we are going back to original variables at this point.
                 rg.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)

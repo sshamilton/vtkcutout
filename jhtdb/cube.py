@@ -1,6 +1,6 @@
 import numpy as np
 import pyodbc, os
-from jhtdb.models import Datafield
+from jhtdb.models import Datafield, Dataset
 import time
 
 class Cube:
@@ -30,8 +30,10 @@ class Cube:
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
         start = time.time()
+        #Need to get the time factor which is the multiple of the timestep 
+        timefactor = Dataset.objects.get(dbname_text=ci.dataset).timefactor
         cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
-            ci.dataset, datafield, timestep, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
+            ci.dataset, datafield, timestep*timefactor, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
         end = time.time()
         extime = end - start
         print ("DB Execution time: " + str(extime) + " seconds")

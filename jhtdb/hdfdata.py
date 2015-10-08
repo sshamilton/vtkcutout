@@ -42,8 +42,7 @@ class HDFData:
                     shape[2] = (ci.xlen+ci.xstep-1)/ci.xstep                    
                     dset = fh.create_dataset(dsetname, (shape[0], shape[1], shape[2],components),
                         maxshape=(shape[0], shape[1], shape[2],components),compression='gzip')
-                    print ("Data length is: %s" %len(data))
-                    import pdb;pdb.set_trace()
+                    print ("Data length is: %s" %len(data))                    
                     data = data.reshape(shape[0], shape[1], shape[2],components)
                     dset[...] = data
         except:
