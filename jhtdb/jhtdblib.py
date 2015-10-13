@@ -45,7 +45,7 @@ class JHTDBLib():
         if ((cfieldlist[0] == 'vo') or (cfieldlist[0] == 'qc') or (cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'qcc')):
             cutout_info.datafields = w[2]
             
-            if (len(cfieldlist) > 1):
+            if (cfieldlist[1] != ''):                
                 cutout_info.threshold = float(cfieldlist[1])
             else:
                 print("Threshold not found, defaulting", cfieldlist)
@@ -69,8 +69,8 @@ class JHTDBLib():
             cutout_info.xstep = int(s[1])
             cutout_info.ystep = int(s[2])
             cutout_info.zstep = int(s[3])
-            cutout_info.filterwidth = int(w[9])
-        
+            cutout_info.filter = int(w[9])
+             
         return cutout_info
 
     def verify(self, authtoken):

@@ -44,7 +44,7 @@ class VTKData:
             tmp = NamedTemporaryFile(suffix='.vtp')
             suffix = 'vtp'
             writer = vtk.vtkXMLPolyDataWriter()                         
-            outfile = ci.filetype + '-contour'
+            outfile = ci.dataset + '-contour'
             contour = True
         elif (ci.dataset == "channel"):
             tmp = NamedTemporaryFile(suffix='.vtr')
@@ -97,7 +97,7 @@ class VTKData:
         #This is only called on qcc or cvo
         #cube size should be 256 or 512 for production, using 16 for testing.
         path = '/var/www/polycache/'
-        cubedimension = 256
+        cubedimension = 64
         fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
         print ("Full poly mesh cube size is: ", fullcubesize)
         #The corner of the cube must be a multiple of the cubedimension.
@@ -144,8 +144,11 @@ class VTKData:
                         ccache.save()
                         #import pdb;pdb.set_trace()
                     fullcube.AddInputConnection(vtpcube.GetOutputPort())
+        xspacing = Dataset.objects.get(dbname_text=ci.dataset).xspacing
+        yspacing = Dataset.objects.get(dbname_text=ci.dataset).yspacing
+        zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing 
         box = vtk.vtkBox()
-        box.SetBounds(ci.xstart, ci.xstart+ci.xlen-1, ci.ystart, ci.ystart+ci.ylen-1, ci.zstart, ci.zstart + ci.zlen-1)
+        box.SetBounds(ci.xstart*xspacing, (ci.xstart+ci.xlen-1)*xspacing, ci.ystart*yspacing, (ci.ystart+ci.ylen-1)*yspacing, ci.zstart*zspacing, (ci.zstart + ci.zlen-1)*zspacing)
         fullcube.Update()   
         clip = vtk.vtkClipPolyData()
         clip.SetClipFunction(box)
@@ -162,6 +165,7 @@ class VTKData:
         
     def getvtkdata(self, ci, timestep):
         PI= 3.141592654
+        contour=False
         firstval = ci.datafields.split(',')[0]
         overlap = 2
         print ("First: ", firstval)
@@ -186,27 +190,35 @@ class VTKData:
         image = vtk.vtkImageData()
         rg = vtk.vtkRectilinearGrid()              
         for field in fieldlist:
-            if (ci.xlen > 130 and ci.ylen > 130 and ci.zlen > 130):
+            if (ci.xlen > 128 and ci.ylen > 128 and ci.zlen > 128 and  not contour):
                 #Do this if cutout is too large
+                #Note: we don't want to get cubed data if we are doing cubes for contouring.
                 data=GetData().getcubedrawdata(ci, timestep, field)
             else:
                 data=GetData().getrawdata(ci, timestep, field)                  
             vtkdata = numpy_support.numpy_to_vtk(data.flat, deep=True, array_type=vtk.VTK_FLOAT)            
             components = Datafield.objects.get(shortname=field).components
             vtkdata.SetNumberOfComponents(components)
-            vtkdata.SetName(Datafield.objects.get(shortname=field).longname)            
+            vtkdata.SetName(Datafield.objects.get(shortname=field).longname)  
+            #Get spacing from database and multiply it by the step.
+            xspacing = Dataset.objects.get(dbname_text=ci.dataset).xspacing
+            yspacing = Dataset.objects.get(dbname_text=ci.dataset).yspacing
+            zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing          
                 #We need to see if we need to subtract one on end of extent edges.
             image.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
             #image.SetExtent(ci.xstart, ci.xstart+int(ci.xlen)-1, ci.ystart, ci.ystart+int(ci.ylen)-1, ci.zstart, ci.zstart+int(ci.zlen)-1)
             image.GetPointData().AddArray(vtkdata)
-            image.SetSpacing(ci.xstep,ci.ystep,ci.zstep)
+            if (Datafield.objects.get(shortname=field).longname == "Velocity"):
+                #Set the Velocity Array as vectors in the image.
+                image.GetPointData().SetVectors(image.GetPointData().GetArray("Velocity"))
+
+            image.SetSpacing(xspacing*ci.xstep,yspacing*ci.ystep,zspacing*ci.zstep)
 
             #Check if we need a rectilinear grid, and set it up if so.
             if (ci.dataset == 'channel'):
                 ygrid = jhtdblib.JHTDBLib().getygrid()
                 #print("Ygrid: ")
-                #print (ygrid)Jas
-                
+                #print (ygrid)                
                 #Not sure about contouring channel yet, so we are going back to original variables at this point.
                 rg.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
                 #components = Datafield.objects.get(shortname=field).components
@@ -216,8 +228,8 @@ class VTKData:
                 #import pdb;pdb.set_trace()
                 #This isn't possible--we will have to do something about this in the future.
                 #rg.SetSpacing(ci.xstep,ci.ystep,ci.zstep)
-                xg = np.arange(float(ci.xstart),float(ci.xlen))
-                zg = np.arange(float(ci.zstart),float(ci.zlen))
+                xg = np.arange(0,2047.0)
+                zg = np.arange(0,1535.0)
                 for x in xg:
                         xg[x] = 8*PI/2048*x
                 for z in zg:
@@ -247,6 +259,7 @@ class VTKData:
             print("Vorticity Computation time: " + str(comptime) + "s")
         elif (computation == 'cvo'):
             start = time.time()
+            
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
@@ -264,6 +277,7 @@ class VTKData:
             mend = time.time()
             comptime = mend-vend
             print("Magnitude Computation time: " + str(comptime) + "s")
+            #import pdb; pdb.set_trace()
 
             image.GetPointData().SetScalars(cp.GetOutput().GetPointData().GetVectors())
             mag.SetInputData(image)
@@ -279,7 +293,7 @@ class VTKData:
             #Now we need to clip out the overlap
             box = vtk.vtkBox()    
             #set box to requested size
-            box.SetBounds(oci.xstart, oci.xstart+oci.xlen-1, oci.ystart, oci.ystart+oci.ylen-1, oci.zstart,oci.zstart+oci.zlen-1)
+            box.SetBounds(oci.xstart*xspacing, (oci.xstart+oci.xlen-1)*xspacing, (oci.ystart*yspacing), (oci.ystart+oci.ylen-1)*yspacing, oci.zstart*zspacing,(oci.zstart+oci.zlen-1)*zspacing)
             clip = vtk.vtkClipPolyData()       
             clip.SetClipFunction(box)
             clip.GenerateClippedOutputOn()

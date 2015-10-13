@@ -93,6 +93,7 @@ def getcutout(request, webargs):
     jhlib = JHTDBLib()
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)
+    print "Filter = " + str(ci.filter)
     #Verify token
     if (jhlib.verify(ci.authtoken)):
         if (ci.filetype == "vtk"):
@@ -104,7 +105,7 @@ def getcutout(request, webargs):
         else:
             #Serve up an HDF5 file
             h5file = HDFData().gethdf(ci)
-            response = HttpResponse(h5file, content_type='data/hdf5')
+            response = HttpResponse(h5file, content_type='application/x-hdf;subtype=bag')
             attach = 'attachment;filename=' + ci.dataset + '.h5'
             response['Content-Disposition'] = attach
     else:

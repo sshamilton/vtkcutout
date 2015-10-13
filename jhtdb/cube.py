@@ -14,8 +14,8 @@ class Cube:
         self.xwidth, self.ywidth, self.zwidth = self.cubewidth = [cubesize[2], cubesize[1], cubesize[0]]
         self.xstart, self.ystart, self.zstart = self.corner = [ cubecorner[0], cubecorner[1], cubecorner[2]]
         self.xstep, self.ystep, self.zstep = self.step = [ cubestep[0], cubestep[1], cubestep[2]]
-        self.filterwidth = 1 #default to one.
-        self.components = 3 #set this!
+        self.filterwidth = filterwidth
+        self.components = components
         # RB this next line is not typed and produces floats.  Cube needs to be created in the derived classes
         #    self.data = np.empty ( self.cubesize )
         self.data = np.empty ([self.zwidth,self.ywidth,self.xwidth,components])
@@ -51,12 +51,14 @@ class Cube:
         #print ("Raw size is %d" % len(raw))
         #print ("components is %d" % components)
         shape = [0]*3
-        shape[0] = (ci.zlen+ci.zstep-1)/ci.zstep                    
-        shape[1] = (ci.ylen+ci.ystep-1)/ci.ystep                    
-        shape[2] = (ci.xlen+ci.xstep-1)/ci.xstep
+        shape[0] = (self.zwidth+ci.zstep-1)/ci.zstep                    
+        shape[1] = (self.ywidth+ci.ystep-1)/ci.ystep                    
+        shape[2] = (self.xwidth+ci.xstep-1)/ci.xstep
+        #import pdb;pdb.set_trace()
         self.data = np.frombuffer(raw, dtype=np.float32).reshape([shape[0],shape[1],shape[2],components])
         print("shape = ")
         print (self.data.shape)
+        conn.close()
 
     def addData ( self, other ):
         """Add data to a larger cube from a smaller cube"""
@@ -67,9 +69,7 @@ class Cube:
         #print ("Offsets: ", xoffset, yoffset, zoffset)
         #print("size", other.xlen, other.ylen, other.zlen)
         #zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen
-        
         np.copyto ( self.data[zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen,0:self.components], other.data[:,:,:,:] )
-        #import pdb;pdb.set_trace()
     def trim ( self, ci ):
         """Trim off the excess data"""
         self.data = self.data [ ci.zstart:ci.zstart+ci.zlen, ci.ystart:ci.ystart+ci.ylen, ci.xstart:ci.xstart+ci.xlen ]

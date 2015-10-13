@@ -14,7 +14,9 @@ class Dataset(models.Model):
     timeend = models.IntegerField(default = 1024)
     timefactor = models.IntegerField(default = 1)
     defaultthreshold = models.FloatField(default = 23.0)
-    
+    xspacing = models.FloatField(default = 1.0)
+    yspacing = models.FloatField(default = 1.0)
+    zspacing = models.FloatField(default = 1.0)
 
     def __unicode__(self):
         return u'{0}'.format(self.dataset_text)
