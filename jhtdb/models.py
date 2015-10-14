@@ -44,6 +44,7 @@ class Polycache(models.Model):
     threshold = models.FloatField(default = 0)
     timestep = models.IntegerField(default = 0)
     dataset = models.ForeignKey(Dataset)
+    filterwidth = models.IntegerField(default=1)
     computation = models.CharField(max_length=5, default = 'cvo') #Set to qcc or cvo depending on the calculation
     class Meta:
         ordering = ('zindexstart',)

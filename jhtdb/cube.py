@@ -37,7 +37,7 @@ class Cube:
         end = time.time()
         extime = end - start
         print ("DB Execution time: " + str(extime) + " seconds")
-        print (ci.dataset, datafield, timestep, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
+        #print (ci.dataset, datafield, timestep, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
 
         row = cursor.fetchone()
         raw = row[0]
@@ -54,24 +54,24 @@ class Cube:
         shape[0] = (self.zwidth+ci.zstep-1)/ci.zstep                    
         shape[1] = (self.ywidth+ci.ystep-1)/ci.ystep                    
         shape[2] = (self.xwidth+ci.xstep-1)/ci.xstep
-        #import pdb;pdb.set_trace()
         self.data = np.frombuffer(raw, dtype=np.float32).reshape([shape[0],shape[1],shape[2],components])
         print("shape = ")
         print (self.data.shape)
         conn.close()
 
-    def addData ( self, other ):
+    def addData ( self, other, ci ):
         """Add data to a larger cube from a smaller cube"""
 
-        xoffset = other.xstart#*other.xlen
-        yoffset = other.ystart#*other.ylen
-        zoffset = other.zstart#*other.zlen
-        #print ("Offsets: ", xoffset, yoffset, zoffset)
-        #print("size", other.xlen, other.ylen, other.zlen)
+        xoffset = other.xstart - ci.xstart
+        yoffset = other.ystart - ci.ystart
+        zoffset = other.zstart - ci.zstart
+        print ("Offsets: ", xoffset, yoffset, zoffset)
+        print("size", other.xlen, other.ylen, other.zlen)
         #zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen
+
         np.copyto ( self.data[zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen,0:self.components], other.data[:,:,:,:] )
     def trim ( self, ci ):
         """Trim off the excess data"""
-        self.data = self.data [ ci.zstart:ci.zstart+ci.zlen, ci.ystart:ci.ystart+ci.ylen, ci.xstart:ci.xstart+ci.xlen ]
+        self.data = self.data [ 0:ci.zlen, 0:ci.ylen, 0:ci.xlen ]
 
 

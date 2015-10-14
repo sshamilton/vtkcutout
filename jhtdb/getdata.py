@@ -36,8 +36,7 @@ class GetData:
                     step = [ci.xstep, ci.ystep, ci.zstep]
                     cube = Cube(corner, cubesize, step, filterwidth, components)
                     cube.getCubeData(ci, datafield, timestep)
-                    fullcube.addData(cube)
-        print fullcube.data
+                    fullcube.addData(cube, ci)         
         fullcube.trim(ci)
         return fullcube.data
                     

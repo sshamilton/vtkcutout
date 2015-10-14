@@ -93,6 +93,7 @@ class VTKData:
             response = HttpResponse(tmp, content_type=ct)
         response['Content-Disposition'] = 'attachment;filename=' +  outfile +'.' + suffix
         return response
+
     def getcachedcontour(self, ci, timestep):
         #This is only called on qcc or cvo
         #cube size should be 256 or 512 for production, using 16 for testing.
@@ -114,9 +115,11 @@ class VTKData:
                     mortonend = jhtdblib.JHTDBLib().createmortonindex(xcorner + cubedimension, ycorner + cubedimension, zcorner + cubedimension)
                     dataset = Dataset.objects.get(dbname_text=ci.dataset)
                     #Determine if we have a hit or miss.
-                    cache = Polycache.objects.filter(zindexstart__lte =mortonstart,zindexend__gte = mortonend, dataset=dataset, threshold=ci.threshold, timestep=timestep)
-                    if (len(cache) > 0): #cache hit, serve up the file
-                        print("Cache hit")
+                    cache = Polycache.objects.filter(zindexstart =mortonstart,zindexend = mortonend, dataset=dataset, threshold=ci.threshold, timestep=timestep, filterwidth=ci.filter)
+                    #import pdb; pdb.set_trace();
+                    #We don't want to cache strided contour data.
+                    if ((len(cache) > 0) and (ci.xstep ==1) and (ci.ystep == 1) and (ci.zstep==1)): #cache hit, serve up the file
+                        print("Cache hit " + str(timestep))
                         reader = vtk.vtkXMLPolyDataReader()
                         #import pdb;pdb.set_trace()
                         reader.SetFileName(path + cache[0].filename)
@@ -135,12 +138,12 @@ class VTKData:
                         end = time.time()
                         #Now write to disk
                         writer = vtk.vtkXMLPolyDataWriter()
-                        vtpfilename = ci.dataset + '-' + str(ci.threshold).replace(".", "_") +'-' + str(timestep)+'-'+ str(mortonstart) + '-' + str(mortonend)
+                        vtpfilename = ci.dataset + '-' + str(ci.threshold).replace(".", "_") +'-' +str(ci.filter) + '-'+ str(timestep)+'-'+ str(mortonstart) + '-' + str(mortonend)
                         writer.SetFileName(path + vtpfilename)
                         writer.SetInputData(vtpcube.GetOutput())
                         writer.Write()
                         
-                        ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep)
+                        ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
                         ccache.save()
                         #import pdb;pdb.set_trace()
                     fullcube.AddInputConnection(vtpcube.GetOutputPort())
@@ -190,7 +193,7 @@ class VTKData:
         image = vtk.vtkImageData()
         rg = vtk.vtkRectilinearGrid()              
         for field in fieldlist:
-            if (ci.xlen > 128 and ci.ylen > 128 and ci.zlen > 128 and  not contour):
+            if (ci.xlen > 128 and ci.ylen > 128 and ci.zlen > 128 and not contour):
                 #Do this if cutout is too large
                 #Note: we don't want to get cubed data if we are doing cubes for contouring.
                 data=GetData().getcubedrawdata(ci, timestep, field)
@@ -204,7 +207,7 @@ class VTKData:
             xspacing = Dataset.objects.get(dbname_text=ci.dataset).xspacing
             yspacing = Dataset.objects.get(dbname_text=ci.dataset).yspacing
             zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing          
-                #We need to see if we need to subtract one on end of extent edges.
+            #We need to see if we need to subtract one on end of extent edges.
             image.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
             #image.SetExtent(ci.xstart, ci.xstart+int(ci.xlen)-1, ci.ystart, ci.ystart+int(ci.ylen)-1, ci.zstart, ci.zstart+int(ci.zlen)-1)
             image.GetPointData().AddArray(vtkdata)
@@ -277,8 +280,6 @@ class VTKData:
             mend = time.time()
             comptime = mend-vend
             print("Magnitude Computation time: " + str(comptime) + "s")
-            #import pdb; pdb.set_trace()
-
             image.GetPointData().SetScalars(cp.GetOutput().GetPointData().GetVectors())
             mag.SetInputData(image)
             mag.Update()
