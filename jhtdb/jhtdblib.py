@@ -2,6 +2,8 @@
 import os
 import pyodbc
 import numpy as np
+from jhtdb.models import Dataset
+import math
 
 class CutoutInfo():
     def __init__(self):
@@ -48,14 +50,15 @@ class JHTDBLib():
             if (cfieldlist[1] != ''):                
                 cutout_info.threshold = float(cfieldlist[1])
             else:
-                print("Threshold not found, defaulting", cfieldlist)
-                #Just in case the user didn't supply anything, we default to the values below.  These are unscientific--just a guess!
-                if (w[2] == 'cvo'):
-                    cutout_info.threshold = .6
+                print("Threshold not found, defaulting")
+                #Just in case the user didn't supply anything, we default to the values in the database.                                
+                if (cfieldlist[0] == 'cvo'):
+                    cutout_info.threshold = Dataset.objects.get(dbname_text=cutout_info.dataset).defaultthreshold
                     cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
-                elif (w[2] =='qcc'):
+                elif (cfieldlist[0] =='qcc'):
                     cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
-                    cutout_info.threshold = .10
+                    cutout_info.threshold = math.sqrt(Dataset.objects.get(dbname_text=cutout_info.dataset).defaultthreshold)
+                print(str(cutout_info.threshold) + "  =  Threshold")
         else:
             cutout_info.datafields = w[2]
             print("Datafields: ", w[2])
