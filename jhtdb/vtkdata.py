@@ -13,15 +13,27 @@ import zipfile
 import time
 import math
 import numpy as np
-import multiprocessing
+from multiprocessing import Pool
+import tempfile
+from django.db import connection
+#import multiprocessing
 #import multiprocessing_import_worker
 #from tvtk.api import tvtk
 #from mpi4py import MPI
 #from concurrent import futures
 #import concurrent 
-
+import copy_reg
+import types
 
 class VTKData:
+
+    def _pickle_method(m):
+        if m.im_self is None:
+            return getattr, (m.im_class, m.im_func.func_name)
+        else:
+            return getattr, (m.im_self, m.im_func.func_name)
+
+    copy_reg.pickle(types.MethodType, _pickle_method)
 
     def expandcutout(self, ci, overlap):
         if (ci.xstart-overlap >=0):
@@ -40,10 +52,11 @@ class VTKData:
             ci.ylen = ci.ylen + overlap
         if (ds.zend > (ci.zstart+ci.zlen+overlap)):
             ci.zlen = ci.zlen + overlap
-        else:
-            print ("zend ztart zlen overlap: ", ds.zend, ci.zstart, ci.zlen, overlap)
-        print ("z is", ci.zlen)
+        #else:
+            #print ("zend ztart zlen overlap: ", ds.zend, ci.zstart, ci.zlen, overlap)
+        #print ("z is", ci.zlen)
         return ci
+
     def getvtk(self, ci):
         contour = False
         firstval = ci.datafields.split(',')[0]
@@ -85,10 +98,9 @@ class VTKData:
             z.close()
             ct = 'application/zip'
             suffix = 'zip'
-            response = HttpResponse(ziptmp, content_type=ct)
-            print("Zipping!")
+            response = HttpResponse(ziptmp, content_type=ct)            
         else:
-            print("Single Timestep")
+            #print("Single Timestep")
             if (contour == True): #If we have a contour, call the cache version.
                 image = self.getcachedcontour(ci, ci.tstart)
             else:     
@@ -104,11 +116,11 @@ class VTKData:
     def getcachedcontour(self, ci, timestep):
         #This is only called on qcc or cvo
         #cube size should be 256 or 512 for production, using 16 for testing.
-        path = '/var/www/polycache/'
+
         cubedimension = 64
 
         fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
-        print ("Full poly mesh cube size is: ", fullcubesize)
+        #print ("Full poly mesh cube size is: ", fullcubesize)
         #The corner of the cube must be a multiple of the cubedimension.
         corner = [ci.xstart-ci.xstart%cubedimension, ci.ystart-ci.xstart%cubedimension, ci.zstart-ci.xstart%cubedimension]
         cubesize = [cubedimension, cubedimension, cubedimension]
@@ -117,43 +129,32 @@ class VTKData:
         start = time.time()
         cornermap = []
         fullcube = vtk.vtkAppendPolyData()
-        #jobs = []
-        #q = multiprocessing.Queue()
-        #DBSTRING = os.environ['db_connection_string']
-        #with futures.ThreadPoolExecutor(max_workers=1) as executor:
+        args = []
+        cubecount = 0
         for xcorner in range (ci.xstart-ci.xstart%cubedimension,ci.xstart + ci.xlen, cubedimension):
             for ycorner in range (ci.ystart-ci.ystart%cubedimension,ci.ystart + ci.ylen, cubedimension):
                 for zcorner in range (ci.zstart-ci.zstart%cubedimension,ci.zstart + ci.zlen, cubedimension):
                     #cornermap.append([xcorner, ycorner, zcorner])
-                    corners = [xcorner, ycorner, zcorner]
-                    #p = multiprocessing.Process(target=self.buildcube, args=(corners, ci, cubedimension,timestep, q))
-                    #jobs.append(p)
-                    #p.start()
-                    #p.join()
-                    output = self.buildcube(corners, ci, cubedimension, timestep)
-                    fullcube.AddInputConnection(output.GetOutputPort())
-        #for c in range (0,len(cornermap)-1):
-            #jobs[c].join()
-            #import pdb;pdb.set_trace();
-        
-        #import pdb;pdb.set_trace();
-        #p = Pool(len(cornermap))
-        #p.map(self.buildcube(ci, corners cubedimension,timestep, fullcube): corners for corners in cornermap)
+                    cubecount = cubecount+1
+                    args.append([xcorner, ycorner, zcorner, ci, cubedimension,timestep])
 
-        ##               sendcorner = ([xcorner, ycorner, zcorner])
-        #                conn = pyodbc.connect(DBSTRING, autocommit=True)
-        #                executor.submit(self.buildcube, sendcorner, ci, cubedimension, timestep, conn)
+                    #output = self.buildcube(corners, ci, cubedimension, timestep)
+                    #fullcube.AddInputConnection(output.GetOutputPort())
+
+        #Create a process pool for each cube
+        #print ("Numcubes: ", cubecount)
+        p = Pool(cubecount)
+        #print("Pool created..mapping args", args)
+        cubelist = p.map(self.buildcube, args)
         
-        #with futures.ThreadPoolExecutor(max_workers=1) as executor:
-            #cubes = {executor.submit(self.buildcube, corners, ci, cubedimension, timestep, fullcube): corners for corners in cornermap}
-            #for future in concurrent.futures.as_completed(cubes):
-             #   print('Adding cube', future)
-                #sleep(1)
-                #import pdb;pdb.set_trace();
-                #fullcube.AddInputConnection(future.result())
-        #executor.shutdown(wait=True)
-        #conn.close()
-        #import pdb;pdb.set_trace();
+        for filename in cubelist:
+            r = vtk.vtkXMLPolyDataReader()
+            r.SetFileName(filename)
+            r.Update()
+            fullcube.AddInputConnection(r.GetOutputPort())
+            #print("Added:", filename)
+
+        connection.close()
         end = time.time()
         comptime = end-start
         print("Final Computation time: " + str(comptime) + "s")
@@ -164,11 +165,14 @@ class VTKData:
         zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing 
         box = vtk.vtkBox()
         box.SetBounds(ci.xstart*xspacing, (ci.xstart+ci.xlen-1)*xspacing, ci.ystart*yspacing, (ci.ystart+ci.ylen-1)*yspacing, ci.zstart*zspacing, (ci.zstart + ci.zlen-1)*zspacing)
+         
         fullcube.Update()   
         clip = vtk.vtkClipPolyData()
         clip.SetClipFunction(box)
         clip.GenerateClippedOutputOn()
         fco = fullcube.GetOutput()
+        
+        
         fco.GetPointData().SetScalars(fco.GetPointData().GetArray("Velocity"))
         clip.SetInputData(fco)
         clip.InsideOutOn()
@@ -180,11 +184,17 @@ class VTKData:
         clean.Update()
         return clean.GetOutput()
 
-    def buildcube(self,corners, ci, cubedimension, timestep):
-        xcorner = corners[0]
-        ycorner = corners[1]
-        zcorner = corners[2]
-        print("Gettting cube: ", xcorner, ycorner, zcorner)
+    def buildcube(self, args):
+        path = '/var/www/polycache/'
+        ci = args[3]
+        cubedimension = args[4]
+        timestep = args[5]
+        xcorner = args[0]
+        ycorner = args[1]
+        zcorner = args[2]
+        #Django hack for connection issue with multiprocessing.  This forces a new connection for each process.
+        connection.close()
+        #print("Gettting cube: ", xcorner, ycorner, zcorner)
         mortonstart = jhtdblib.JHTDBLib().createmortonindex(xcorner, ycorner, zcorner)
         mortonend = jhtdblib.JHTDBLib().createmortonindex(xcorner + cubedimension, ycorner + cubedimension, zcorner + cubedimension)
         dataset = Dataset.objects.get(dbname_text=ci.dataset)
@@ -193,15 +203,16 @@ class VTKData:
         #import pdb; pdb.set_trace();
         #We don't want to cache strided contour data.
         #skip cache for concurrent testing
+        fullname = ""
         if ((len(cache) > 0) and 0 and (ci.xstep ==1) and (ci.ystep == 1) and (ci.zstep==1)): #cache hit, serve up the file
-            print("Cache hit " + str(timestep))
+            #print("Cache hit " + str(timestep))
             reader = vtk.vtkXMLPolyDataReader()
             reader.SetFileName(path + cache[0].filename)
-            print path + cache[0].filename
+            #print path + cache[0].filename
             vtpcube = reader
 
         else: #Cache miss, grab from db and cache the result
-            print ("Cache miss")
+            #print ("Cache miss")
             cubeci = copy.deepcopy(ci)
             cubeci.xstart = xcorner
             cubeci.ystart = ycorner
@@ -213,35 +224,42 @@ class VTKData:
             #Now write to disk
             writer = vtk.vtkXMLPolyDataWriter()
             vtpfilename = ci.dataset + '-' + str(ci.threshold).replace(".", "_") +'-' +str(ci.filter) + '-'+ str(timestep)+'-'+ str(mortonstart) + '-' + str(mortonend)
-            #writer.SetFileName(path + vtpfilename)
-            #writer.SetInputData(vtpcube.GetOutput())
-            #writer.Write()
+            fullname = path + vtpfilename
+            writer.SetFileName(fullname)
+            writer.SetInputData(vtpcube.GetOutput())
+            writer.Write()
             
-            #ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
-            #ccache.save()
+            ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
+            ccache.save()
             #import pdb;pdb.set_trace()
-        print("Returning cube: ", corners)
-        return vtpcube
+        #print("Returning cube: ", xcorner, ycorner, zcorner)
+        #return vtpcube
         #q.put(vtpcube.GetOutputPort())
         #fullcube.AddInputConnection(vtpcube.GetOutputPort())
-        print("Added to fullcube")
+        #print("wrote tempfile")
+        return (fullname)
 
     def getvtkdata(self, ci, timestep):
         PI= 3.141592654
         contour=False
         firstval = ci.datafields.split(',')[0]
-        overlap = 2
-        print ("First: ", firstval)
+        #print ("First: ", firstval)
         if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'qcc')):
             datafields = 'u'
             
             computation = firstval #We are doing a computation, so we need to know which one.
             if ((firstval == 'cvo') or (firstval == 'qcc')):
-                overlap = 2 #This appears to be what we need.  We need to verify this.
+                overlap = 3 #This was 2, but due to rounding because of the spacing, 3 is required.
                 #Save a copy of the original request
-                oci = copy.deepcopy(ci)
-                ci = self.expandcutout(oci, overlap) #Expand the cutout by the overlap
-                print ("z is overlap:", ci.zlen)
+                oci = jhtdblib.CutoutInfo()
+                oci.xstart = ci.xstart
+                oci.ystart = ci.ystart
+                oci.zstart = ci.zstart
+                oci.xlen = ci.xlen
+                oci.ylen = ci.ylen
+                oci.zlen = ci.zlen
+
+                ci = self.expandcutout(ci, overlap) #Expand the cutout by the overlap
                 contour = True               
         else:
             datafields = ci.datafields.split(',') #There could be multiple components, so we will have to loop
@@ -263,10 +281,7 @@ class VTKData:
             components = Datafield.objects.get(shortname=field).components
             vtkdata.SetNumberOfComponents(components)
             vtkdata.SetName(Datafield.objects.get(shortname=field).longname)  
-            #Get spacing from database and multiply it by the step.
-            xspacing = Dataset.objects.get(dbname_text=ci.dataset).xspacing
-            yspacing = Dataset.objects.get(dbname_text=ci.dataset).yspacing
-            zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing          
+            
             #We need to see if we need to subtract one on end of extent edges.
             image.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
             #image.SetExtent(ci.xstart, ci.xstart+int(ci.xlen)-1, ci.ystart, ci.ystart+int(ci.ylen)-1, ci.zstart, ci.zstart+int(ci.zlen)-1)
@@ -274,7 +289,15 @@ class VTKData:
             if (Datafield.objects.get(shortname=field).longname == "Velocity"):
                 #Set the Velocity Array as vectors in the image.
                 image.GetPointData().SetVectors(image.GetPointData().GetArray("Velocity"))
-
+#Get spacing from database and multiply it by the step.  Don't do this on the contour--it is performed later on.
+            #if (contour):
+                #We need to scale the threshold to the spacing of the dataset.  This is because we build the cubes
+                #on a 1 spacing cube in order to get proper overlap on the contours.  
+                #ci.threshold = ci.threshold*Dataset.objects.get(dbname_text=ci.dataset).xspacing
+            #else:
+            xspacing = Dataset.objects.get(dbname_text=ci.dataset).xspacing
+            yspacing = Dataset.objects.get(dbname_text=ci.dataset).yspacing
+            zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing          
             image.SetSpacing(xspacing*ci.xstep,yspacing*ci.ystep,zspacing*ci.zstep)
 
             #Check if we need a rectilinear grid, and set it up if so.
@@ -314,8 +337,7 @@ class VTKData:
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
             vorticity.SetInputData(image)
-            print("Computing Vorticity")
-
+            #print("Computing Vorticity")
             vorticity.Update()
             end = time.time()
             comptime = end-start
@@ -326,8 +348,9 @@ class VTKData:
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
+            
             vorticity.SetInputData(image)
-            print("Computing Voricity")
+            #print("Computing Voricity")
             vorticity.Update()
             vend = time.time()
             comptime = vend-start
@@ -335,14 +358,14 @@ class VTKData:
             mag = vtk.vtkImageMagnitude()
             cp = vtk.vtkCellDataToPointData()
             cp.SetInputData(vorticity.GetOutput())
-            print("Computing magnitude")
+            #print("Computing magnitude")
             cp.Update()
             mend = time.time()
-            comptime = mend-vend
-            print("Magnitude Computation time: " + str(comptime) + "s")
             image.GetPointData().SetScalars(cp.GetOutput().GetPointData().GetVectors())
             mag.SetInputData(image)
             mag.Update()
+            comptime = mend-vend
+            print("Magnitude Computation time: " + str(comptime) + "s")
             c = vtk.vtkContourFilter()
             c.SetValue(0,ci.threshold)
             c.SetInputData(mag.GetOutput())
@@ -354,13 +377,15 @@ class VTKData:
             #Now we need to clip out the overlap
             box = vtk.vtkBox()    
             #set box to requested size
-            box.SetBounds(oci.xstart*xspacing, (oci.xstart+oci.xlen-1)*xspacing, (oci.ystart*yspacing), (oci.ystart+oci.ylen-1)*yspacing, oci.zstart*zspacing,(oci.zstart+oci.zlen-1)*zspacing)
+            #The OCI deepcopy didn't seem to work.  Manually taking the overlap again.
+            box.SetBounds(oci.xstart*xspacing, (oci.xstart+oci.xlen)*xspacing, oci.ystart*yspacing, (oci.ystart+oci.ylen)*yspacing, oci.zstart*yspacing,(oci.zstart+oci.zlen)*yspacing)
             clip = vtk.vtkClipPolyData()       
             clip.SetClipFunction(box)
             clip.GenerateClippedOutputOn()
             clip.SetInputData(c.GetOutput())
             clip.InsideOutOn()
             clip.Update()
+            #import pdb;pdb.set_trace()
             cropdata = clip.GetOutput()
             end = time.time()
             comptime = end-start
