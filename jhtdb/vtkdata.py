@@ -291,8 +291,8 @@ class VTKData:
             #else:
             xspacing = Dataset.objects.get(dbname_text=ci.dataset).xspacing
             yspacing = Dataset.objects.get(dbname_text=ci.dataset).yspacing
-            zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing          
-            image.SetSpacing(xspacing*ci.xstep,yspacing*ci.ystep,zspacing*ci.zstep)
+            zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing  
+
 
             #Check if we need a rectilinear grid, and set it up if so.
             if (ci.dataset == 'channel'):
@@ -325,6 +325,8 @@ class VTKData:
                 rg.SetYCoordinates(vtkygrid)
                 image = rg #we rewrite the image since we may be doing a
                            #computation below
+            else:
+                image.SetSpacing(xspacing*ci.xstep,yspacing*ci.ystep,zspacing*ci.zstep)
         #See if we are doing a computation
         if (computation == 'vo'):
             vorticity = vtk.vtkCellDerivatives()

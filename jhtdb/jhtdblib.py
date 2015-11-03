@@ -4,6 +4,7 @@ import pyodbc
 import numpy as np
 from jhtdb.models import Dataset
 import math
+from django.conf import settings
 
 class CutoutInfo():
     def __init__(self):
@@ -77,7 +78,7 @@ class JHTDBLib():
         return cutout_info
 
     def verify(self, authtoken):
-        DBSTRING = os.environ['db_connection_string']
+        DBSTRING = settings.ODBC['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
         query = "SELECT uid, limit FROM turbinfo..users WHERE authkey = '" + str(authtoken) + "'"
@@ -92,7 +93,7 @@ class JHTDBLib():
 
 
     def getygrid(self):
-        DBSTRING = os.environ['db_channel_string']
+        DBSTRING = settings.ODBC['db_channel_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
         rows= cursor.execute("SELECT cell_index, value from grid_points_y ORDER BY cell_index").fetchall()

@@ -2,6 +2,7 @@ import numpy as np
 import pyodbc, os
 from jhtdb.models import Datafield, Dataset
 import time
+from django.conf import settings
 
 class Cube:
 
@@ -26,7 +27,10 @@ class Cube:
         components = Datafield.objects.get(shortname=datafield).components
         #print("Set componets to ", components)
         #import pdb;pdb.set_trace()
-        DBSTRING = os.environ['db_connection_string']
+        #Old Way
+        #DBSTRING = os.environ['db_connection_string']
+        #New Way
+        DBSTRING = settings.ODBC['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
         start = time.time()
