@@ -19,7 +19,7 @@ class HDFData:
             size[...] = [ci.tlen,ci.xlen,ci.ylen,ci.zlen]
             start = fh.create_dataset('_start', (4,), dtype='int32')
             start[...] = [ci.tstart,ci.xstart, ci.ystart, ci.zstart]
-            fieldlist = list(ci.datafields)
+            fieldlist = ci.datafields.split(",")
             print("Fields: %d" % len(fieldlist))
             for field in fieldlist:
                 #We need to get the component size from the database.  

@@ -16,12 +16,6 @@ import numpy as np
 from multiprocessing import Pool
 import tempfile
 from django.db import connection
-#import multiprocessing
-#import multiprocessing_import_worker
-#from tvtk.api import tvtk
-#from mpi4py import MPI
-#from concurrent import futures
-#import concurrent 
 import copy_reg
 import types
 
