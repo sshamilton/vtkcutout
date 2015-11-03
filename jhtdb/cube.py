@@ -55,8 +55,8 @@ class Cube:
         shape[1] = (self.ywidth+ci.ystep-1)/ci.ystep                    
         shape[2] = (self.xwidth+ci.xstep-1)/ci.xstep
         self.data = np.frombuffer(raw, dtype=np.float32).reshape([shape[0],shape[1],shape[2],components])
-        print("shape = ")
-        print (self.data.shape)
+        #print("shape = ")
+        #print (self.data.shape)
         conn.close()
 
     def addData ( self, other, ci ):

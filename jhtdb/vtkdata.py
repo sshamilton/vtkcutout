@@ -229,8 +229,8 @@ class VTKData:
             writer.SetInputData(vtpcube.GetOutput())
             writer.Write()
             
-            ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
-            ccache.save()
+            #ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
+            #ccache.save()
             #import pdb;pdb.set_trace()
         #print("Returning cube: ", xcorner, ycorner, zcorner)
         #return vtpcube
