@@ -28,8 +28,8 @@ class HDFData:
                 components = Datafield.objects.get(shortname=field).components
                 for timestep in range(ci.tstart,ci.tstart+ci.tlen, ci.tstep):
                     #raw = GetData().getrawdata(ci, timestep, field)
-                    #Cube up the data if it is this large.  
-                    if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255):
+                    #Cube up the data if it is this large.  Step gets messed up here, so don't cube if stepped.
+                    if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1):
                         #Do this if cutout is too large
                         data=GetData().getcubedrawdata(ci, timestep, field)
                     else:

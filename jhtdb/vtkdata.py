@@ -89,7 +89,11 @@ class VTKData:
                 writer.Write()
                 #Now add this file to the zipfile
                 z.write(tmp.name, 'cutout' + str(timestep) + '.' + suffix)
+                image = None
+                
             z.close()
+            #Try to clean up here
+            writer = None
             ct = 'application/zip'
             suffix = 'zip'
             response = HttpResponse(ziptmp, content_type=ct)            
@@ -139,12 +143,13 @@ class VTKData:
         #print ("Numcubes: ", cubecount)
         p = Pool(cubecount)
         #print("Pool created..mapping args", args)
+        #connection.close()
         cubelist = p.map(self.buildcube, args)
         
         for filename in cubelist:
             r = vtk.vtkXMLPolyDataReader()
             r.SetFileName(filename)
-            r.Update()
+            #r.Update()
             fullcube.AddInputConnection(r.GetOutputPort())
             #print("Added:", filename)
 
@@ -176,6 +181,10 @@ class VTKData:
         clean = vtk.vtkCleanPolyData()
         clean.SetInputConnection(clip.GetOutputPort())
         clean.Update()
+        #Try to cleanup!
+        clip = None
+        fullcube = None
+        box = None
         return clean.GetOutput()
 
     def buildcube(self, args):
@@ -200,10 +209,11 @@ class VTKData:
         fullname = ""
         if ((len(cache) > 0) and 0 and (ci.xstep ==1) and (ci.ystep == 1) and (ci.zstep==1)): #cache hit, serve up the file
             #print("Cache hit " + str(timestep))
-            reader = vtk.vtkXMLPolyDataReader()
-            reader.SetFileName(path + cache[0].filename)
+            #reader = vtk.vtkXMLPolyDataReader()
+            #reader.SetFileName(path + cache[0].filename)
             #print path + cache[0].filename
-            vtpcube = reader
+            #vtpcube = reader
+            fullname = path + cache[0].filename
 
         else: #Cache miss, grab from db and cache the result
             #print ("Cache miss")
@@ -223,6 +233,8 @@ class VTKData:
             writer.SetInputData(vtpcube.GetOutput())
             writer.Write()
             
+            #cleanup
+
             #ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
             #ccache.save()
             #import pdb;pdb.set_trace()
@@ -383,6 +395,14 @@ class VTKData:
             clip.Update()
             #import pdb;pdb.set_trace()
             cropdata = clip.GetOutput()
+            #Cleanup
+            image.ReleaseData()
+            #mag.ReleaseData()
+            #box.ReleaseData()
+            #clip.ReleaseData()
+            #image.Delete()
+            #box.Delete()
+            #vorticity.Delete()
             end = time.time()
             comptime = end-start
             print("Total Computation time: " + str(comptime) + "s")

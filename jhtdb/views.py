@@ -14,6 +14,7 @@ from jhtdblib import JHTDBLib
 from jhtdblib import CutoutInfo
 from hdfdata import HDFData
 from vtkdata import VTKData
+from contextlib import closing  
 
 # Create your views here.
 class CutoutForm(forms.Form):
