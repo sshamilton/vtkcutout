@@ -154,6 +154,11 @@ class VTKData:
             #print("Added:", filename)
 
         connection.close()
+        #cleanup processes
+        #p = None
+        p.close()
+        p.join()
+        #cubelist = None
         end = time.time()
         comptime = end-start
         print("Final Computation time: " + str(comptime) + "s")
@@ -252,7 +257,6 @@ class VTKData:
         #print ("First: ", firstval)
         if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'qcc')):
             datafields = 'u'
-            
             computation = firstval #We are doing a computation, so we need to know which one.
             if ((firstval == 'cvo') or (firstval == 'qcc')):
                 overlap = 3 #This was 2, but due to rounding because of the spacing, 3 is required.
@@ -264,7 +268,6 @@ class VTKData:
                 oci.xlen = ci.xlen
                 oci.ylen = ci.ylen
                 oci.zlen = ci.zlen
-
                 ci = self.expandcutout(ci, overlap) #Expand the cutout by the overlap
                 contour = True               
         else:
@@ -341,6 +344,7 @@ class VTKData:
                 image.SetSpacing(xspacing*ci.xstep,yspacing*ci.ystep,zspacing*ci.zstep)
         #See if we are doing a computation
         if (computation == 'vo'):
+            start = time.time()
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
@@ -350,6 +354,7 @@ class VTKData:
             end = time.time()
             comptime = end-start
             print("Vorticity Computation time: " + str(comptime) + "s")
+            return image
         elif (computation == 'cvo'):
             start = time.time()
             
