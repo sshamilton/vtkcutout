@@ -277,7 +277,7 @@ class VTKData:
         image = vtk.vtkImageData()
         rg = vtk.vtkRectilinearGrid()              
         for field in fieldlist:
-            if (ci.xlen > 128 and ci.ylen > 128 and ci.zlen > 128 and not contour):
+            if (ci.xlen > 128 and ci.ylen > 128 and ci.zlen > 128 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1 and not contour):
                 #Do this if cutout is too large
                 #Note: we don't want to get cubed data if we are doing cubes for contouring.
                 data=GetData().getcubedrawdata(ci, timestep, field)
