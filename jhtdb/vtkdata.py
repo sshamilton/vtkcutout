@@ -78,7 +78,7 @@ class VTKData:
             #Write each timestep to file and read it back in.  Seems to be the only way I know how to put all timesteps in one file for now
             #Create a timestep for each file and then send the user a zip file
             ziptmp = NamedTemporaryFile(suffix='.zip')
-            z = zipfile.ZipFile(ziptmp.name, 'w')
+            z = zipfile.ZipFile(ziptmp.name, 'w') #, 'allowZip64' this should be added to get zipfiles > 2gb.  Should we allow this?
             for timestep in range (ci.tstart,ci.tstart+ci.tlen, ci.tstep ):
                 if (contour == True): #If we have a contour, call the cache version.
                     image = self.getcachedcontour(ci, timestep)
@@ -115,7 +115,7 @@ class VTKData:
         #This is only called on qcc or cvo
         #cube size should be 256 or 512 for production, using 16 for testing.
 
-        cubedimension = 64
+        cubedimension = 128
 
         fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
         #print ("Full poly mesh cube size is: ", fullcubesize)
@@ -141,10 +141,13 @@ class VTKData:
 
         #Create a process pool for each cube
         #print ("Numcubes: ", cubecount)
+        if (cubecount > 8):
+            cubecount = 8 #limit to only 8 processes 
         p = Pool(cubecount)
         #print("Pool created..mapping args", args)
         #connection.close()
         cubelist = p.map(self.buildcube, args)
+        #p.join() #wait for processes to finish 
         
         for filename in cubelist:
             r = vtk.vtkXMLPolyDataReader()
@@ -156,8 +159,8 @@ class VTKData:
         connection.close()
         #cleanup processes
         #p = None
-        p.close()
-        p.join()
+        p.close() #free up the ram
+
         #cubelist = None
         end = time.time()
         comptime = end-start

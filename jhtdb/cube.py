@@ -36,7 +36,7 @@ class Cube:
         start = time.time()
         #Need to get the time factor which is the multiple of the timestep 
         timefactor = Dataset.objects.get(dbname_text=ci.dataset).timefactor
-        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
+        cursor.execute("{CALL turblib.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
             ci.dataset, datafield, timestep*timefactor, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
         end = time.time()
         extime = end - start
@@ -46,7 +46,7 @@ class Cube:
         row = cursor.fetchone()
         raw = row[0]
         part=0
-        while(cursor.nextset()):           
+        while(cursor.nextset()): 
             row = cursor.fetchone()
             raw = raw + row[0]
             part = part +1
