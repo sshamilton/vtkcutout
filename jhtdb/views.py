@@ -94,7 +94,6 @@ def getcutout(request, webargs):
     jhlib = JHTDBLib()
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)
-    print "Filter = " + str(ci.filter)
     #Verify token
     if (jhlib.verify(ci.authtoken)):
         if (ci.filetype == "vtk"):
@@ -109,6 +108,24 @@ def getcutout(request, webargs):
             response = HttpResponse(h5file, content_type='application/x-hdf;subtype=bag')
             attach = 'attachment;filename=' + ci.dataset + '.h5'
             response['Content-Disposition'] = attach
+    else:
+        response = HttpResponse("Error: token is invalid")
+    return response
+
+def preview(request, webargs):
+    ci = CutoutInfo()
+    jhlib = JHTDBLib()
+    #Parse web args into cutout info object
+    ci=jhlib.parsewebargs(webargs)
+    template = loader.get_template('jhtdb/preview.html')
+    #Verify token
+    #sample link
+    #getdata_link = "http://dsp033.pha.jhu.edu:8000/jhtdb/getcutout/edu.jhu.ssh-c11eeb58/isotropic1024coarse/pcvo,/0,1/0,64/0,64/0,64/vtk/"
+    #This is kind of a hack, but we have to set the link up properly for the template.
+    getdata_link = webargs.replace("cvo", "pcvo")    
+    if (jhlib.verify(ci.authtoken)):
+        context = RequestContext(request, { 'getdata_link': getdata_link})
+        response = HttpResponse(template.render(context))
     else:
         response = HttpResponse("Error: token is invalid")
     return response

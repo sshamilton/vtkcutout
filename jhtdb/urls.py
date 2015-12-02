@@ -7,4 +7,5 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     #url(r'^geturl/$', views.geturl, name='geturl'),
     url(r'^getcutout/(?P<webargs>.*)$', views.getcutout, name='getcutout'),
+    url(r'^preview/(?P<webargs>.*)$', views.preview, name='preview'),
 ]
