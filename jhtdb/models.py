@@ -17,6 +17,7 @@ class Dataset(models.Model):
     xspacing = models.FloatField(default = 1.0)
     yspacing = models.FloatField(default = 1.0)
     zspacing = models.FloatField(default = 1.0)
+    dt = models.FloatField(default = .002)
 
     def __unicode__(self):
         return u'{0}'.format(self.dataset_text)

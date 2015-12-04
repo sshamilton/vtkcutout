@@ -62,7 +62,7 @@
 <tr><td>Select Dataset:</td>
 <td>
 
-{{form.dataset}}
+{{form.dataset}}<span id="dt"></span>
 
 </td></tr>
 
@@ -94,9 +94,9 @@ Threshold (optional, default is ...): {{form.threshold}}
 <table>
 <tr>
 
-            <td valign="top" colspan="2">Starting coordinate <br /> index for cutout: [<a href="http://turbulence.pha.jhu.edu/datasets.aspx" class="note">?</a>] </td>
+            <td valign="top" colspan="2">Starting coordinate <br /> index for cutout: [<a href="http://turbulence.pha.jhu.edu/datasets.aspx" class="note" target="_blank">?</a>] </td>
 
-            <td valign="top" colspan="2"> &nbsp;Size of cutout: [<a href="http://turbulence.pha.jhu.edu/datasets.aspx" class="note">?</a>] <br />
+            <td valign="top" colspan="2"> &nbsp;Size of cutout: [<a href="http://turbulence.pha.jhu.edu/datasets.aspx" target = "_blank" class="note">?</a>] <br />
 
                 <span class="style1"> &nbsp;(end index minus start index + 1)</span> </td>            
 
@@ -197,7 +197,8 @@ Filter Width (optional): {{form.filter}}</span>
 
 function calcSize() {
    components = 3
-   size = $("#id_xEnd").val() * $("#id_yEnd").val() * $("#id_zEnd").val() * components * $("#id_timeend").val()/($("#id_xstep").val()*$("#id_ystep").val()*$("#id_zstep").val()*$("#id_tstep").val());
+   sizeoffloat = 4
+   size = sizeoffloat * $("#id_xEnd").val() * $("#id_yEnd").val() * $("#id_zEnd").val() * components * $("#id_timeend").val()/($("#id_xstep").val()*$("#id_ystep").val()*$("#id_zstep").val()*$("#id_tstep").val());
    $("#downloadsize").replaceWith("<div id='downloadsize'>Approximate Size (uncompressed): " + formatSize(size) + "</div>");
 }
 
@@ -384,6 +385,7 @@ $('#id_dataset').on('change', function() {
       $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend}})");
       $("#z_start_range").text("({{dset.zstart}}-{{dset.zend|add:-1}})");
       $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend}})");
+      $("#dt").text("(dt: {{dset.dt}})");
       //Update form validation
       $("#id_x").rules("remove");
       $("#id_x").rules("add", {required: true, range: [{{dset.xstart}}, {{dset.xend|add:-1}}]  });

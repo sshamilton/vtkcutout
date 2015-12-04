@@ -55,18 +55,18 @@
 <body>
 <form method="POST" id="cutout_form" />{% csrf_token %}
 <table>
-<tr><td>Authorization Token:</td><td>
+<tr><td>Authorization Token:[<a href="http://turbulence.pha.jhu.edu/help/authtoken.aspx" class="note" target="_blank">?</a>]</td><td>
 {{form.token}}
 
 </td></tr>
-<tr><td>Select Dataset:</td>
+<tr><td>Select Dataset:[<a href="http://turbulence.pha.jhu.edu/datasets.aspx" class="note" target="_blank">?</a>]</td>
 <td>
 
-{{form.dataset}}
+{{form.dataset}}<span id="dt"></span>
 
 </td></tr>
 
-<tr><td>Data Field(s):  </td>
+<tr><td>Data Field(s): [<a href="http://turbulence.pha.jhu.edu/datasets.aspx" class="note" target="_blank">?</a>] </td>
 <td>
 {{form.datafields}}
 
@@ -197,7 +197,8 @@ Filter Width (optional): {{form.filter}}</span>
 
 function calcSize() {
    components = 3
-   size = $("#id_xEnd").val() * $("#id_yEnd").val() * $("#id_zEnd").val() * components * $("#id_timeend").val()/($("#id_xstep").val()*$("#id_ystep").val()*$("#id_zstep").val()*$("#id_tstep").val());
+   sizeoffloat = 4
+   size = sizeoffloat * $("#id_xEnd").val() * $("#id_yEnd").val() * $("#id_zEnd").val() * components * $("#id_timeend").val()/($("#id_xstep").val()*$("#id_ystep").val()*$("#id_zstep").val()*$("#id_tstep").val());
    $("#downloadsize").replaceWith("<div id='downloadsize'>Approximate Size (uncompressed): " + formatSize(size) + "</div>");
 }
 
@@ -384,6 +385,7 @@ $('#id_dataset').on('change', function() {
       $("#y_end_range").text("({{dset.ystart|add:1}}-{{dset.yend}})");
       $("#z_start_range").text("({{dset.zstart}}-{{dset.zend|add:-1}})");
       $("#z_end_range").text("({{dset.zstart|add:1}}-{{dset.zend}})");
+      $("#dt").text("(dt: {{dset.dt}})");
       //Update form validation
       $("#id_x").rules("remove");
       $("#id_x").rules("add", {required: true, range: [{{dset.xstart}}, {{dset.xend|add:-1}}]  });
