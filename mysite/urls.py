@@ -5,5 +5,6 @@ urlpatterns = [
     url(r'^cutout/', include('cutout.urls')),
     url(r'^jhtdb/', include('jhtdb.urls')),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^$', include('jhtdb.urls')),
 ]
 
