@@ -21,7 +21,7 @@ class GetData:
         #cubesize 16
         cubedimension = 128
         components = Datafield.objects.get(shortname=datafield).components
-        fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
+        fullcubesize  = [math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension]
         print ("Full cube size is: ", fullcubesize)
         filterwidth = ci.filter
         corner = [ci.xstart, ci.ystart, ci.zstart]

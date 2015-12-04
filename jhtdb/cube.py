@@ -11,7 +11,7 @@ class Cube:
         """Create empty array of cubesize"""
         floatsize = 4
         # cubesize is in z,y,x 
-        self.zlen, self.ylen, self.xlen = self.cubesize = [ cubesize[2],cubesize[1],cubesize[0] ] 
+        self.zlen, self.ylen, self.xlen = self.cubesize = [ cubesize[0],cubesize[1],cubesize[2] ] 
         self.xwidth, self.ywidth, self.zwidth = self.cubewidth = [cubesize[2], cubesize[1], cubesize[0]]
         self.xstart, self.ystart, self.zstart = self.corner = [ cubecorner[0], cubecorner[1], cubecorner[2]]
         self.xstep, self.ystep, self.zstep = self.step = [ cubestep[0], cubestep[1], cubestep[2]]
@@ -29,7 +29,7 @@ class Cube:
         #import pdb;pdb.set_trace()
         #Old Way
         #DBSTRING = os.environ['db_connection_string']
-        #New Way
+        #New Way 
         DBSTRING = settings.ODBC['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
@@ -42,7 +42,6 @@ class Cube:
         extime = end - start
         print ("DB Execution time: " + str(extime) + " seconds")
         #print (ci.dataset, datafield, timestep, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
-
         row = cursor.fetchone()
         raw = row[0]
         part=0
@@ -52,7 +51,7 @@ class Cube:
             part = part +1
             #print ("added part %d" % part)
             #print ("Part size is %d" % len(row[0]))
-        #print ("Raw size is %d" % len(raw))
+        print ("Raw size is %d" % len(raw))
         #print ("components is %d" % components)
         shape = [0]*3
         shape[0] = (self.zwidth+ci.zstep-1)/ci.zstep                    
@@ -65,13 +64,16 @@ class Cube:
 
     def addData ( self, other, ci ):
         """Add data to a larger cube from a smaller cube"""
-
         xoffset = other.xstart - ci.xstart
         yoffset = other.ystart - ci.ystart
         zoffset = other.zstart - ci.zstart
-        print ("Offsets: ", xoffset, yoffset, zoffset)
-        print("size", other.xlen, other.ylen, other.zlen)
+        #print ("Offsets: ", xoffset, yoffset, zoffset)
+        #print("size", other.xlen, other.ylen, other.zlen)
         #zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen
+        #if (other.data.shape != self.data[zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen,0:self.components].shape):
+            #print("Data not matching. debug mode")
+            #import pdb
+            #pdb.set_trace()
 
         np.copyto ( self.data[zoffset:zoffset+other.zlen,yoffset:yoffset+other.ylen,xoffset:xoffset+other.xlen,0:self.components], other.data[:,:,:,:] )
     def trim ( self, ci ):
