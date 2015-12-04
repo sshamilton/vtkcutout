@@ -54,7 +54,7 @@ class VTKData:
     def getvtk(self, ci):
         contour = False
         firstval = ci.datafields.split(',')[0]
-        if ((firstval == 'cvo') or (firstval == 'qcc')): #we may need to return a vtp file
+        if ((firstval == 'cvo') or (firstval == 'qcc') or (firstval == 'pcvo')): #we may need to return a vtp file
             tmp = NamedTemporaryFile(suffix='.vtp')
             suffix = 'vtp'
             writer = vtk.vtkXMLPolyDataWriter()                         
@@ -73,6 +73,11 @@ class VTKData:
         writer.SetFileName(tmp.name)
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
+        #If a preview, change the writer to write an ascii oldschool vtk format
+        if (firstval == 'pcvo'):
+            suffix = 'vtk'
+            writer = vtk.vtkPolyDataWriter()
+            writer.SetFileTypeToASCII()
         #if multiple timesteps, zip the file.
         if (ci.tlen > 1):
             #Write each timestep to file and read it back in.  Seems to be the only way I know how to put all timesteps in one file for now
@@ -102,7 +107,7 @@ class VTKData:
             if (contour == True): #If we have a contour, call the cache version.
                 image = self.getcachedcontour(ci, ci.tstart)
             else:     
-                image = self.getvtkdata(ci, ci.tstart)
+                image = self.getvtkdata(ci, ci.tstart)            
             writer.SetInputData(image)
             writer.SetFileName(tmp.name)                        
             writer.Write()
@@ -177,9 +182,7 @@ class VTKData:
         clip = vtk.vtkClipPolyData()
         clip.SetClipFunction(box)
         clip.GenerateClippedOutputOn()
-        fco = fullcube.GetOutput()
-        
-        
+        fco = fullcube.GetOutput()               
         fco.GetPointData().SetScalars(fco.GetPointData().GetArray("Velocity"))
         clip.SetInputData(fco)
         clip.InsideOutOn()
@@ -258,10 +261,10 @@ class VTKData:
         contour=False
         firstval = ci.datafields.split(',')[0]
         #print ("First: ", firstval)
-        if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'qcc')):
+        if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'pcvo') or (firstval == 'qcc')):
             datafields = 'u'
             computation = firstval #We are doing a computation, so we need to know which one.
-            if ((firstval == 'cvo') or (firstval == 'qcc')):
+            if ((firstval == 'cvo') or (firstval == 'qcc') or (firstval == 'pcvo')):
                 overlap = 3 #This was 2, but due to rounding because of the spacing, 3 is required.
                 #Save a copy of the original request
                 oci = jhtdblib.CutoutInfo()
@@ -358,7 +361,7 @@ class VTKData:
             comptime = end-start
             print("Vorticity Computation time: " + str(comptime) + "s")
             return image
-        elif (computation == 'cvo'):
+        elif (computation == 'cvo' or computation == 'pcvo'):
             start = time.time()
             
             vorticity = vtk.vtkCellDerivatives()

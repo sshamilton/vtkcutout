@@ -26,6 +26,7 @@ class CutoutInfo():
         self.tstep = 1
         self.filter = 1
         self.threshold = .5 #not a good default, but we need something here.  Should be overwritten by parsewebargs.
+        self.preview = 0
 
 
 class JHTDBLib():
@@ -45,21 +46,22 @@ class JHTDBLib():
         cutout_info.zlen = int(w[6].split(',')[1])
         #For computed fields, set component to velocity.
         cfieldlist = w[2].split(",")
-        if ((cfieldlist[0] == 'vo') or (cfieldlist[0] == 'qc') or (cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'qcc')):
-            cutout_info.datafields = w[2]
-            
+        if ((cfieldlist[0] == 'vo') or (cfieldlist[0] == 'qc') or (cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'qcc')or (cfieldlist[0] == 'pcvo')):
+            cutout_info.datafields = w[2]            
             if (cfieldlist[1] != ''):                
                 cutout_info.threshold = float(cfieldlist[1])
             else:
                 print("Threshold not found, defaulting")
                 #Just in case the user didn't supply anything, we default to the values in the database.                                
-                if (cfieldlist[0] == 'cvo'):
+                if ((cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'pcvo')):
                     cutout_info.threshold = Dataset.objects.get(dbname_text=cutout_info.dataset).defaultthreshold
                     cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
                 elif (cfieldlist[0] =='qcc'):
                     cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
                     cutout_info.threshold = math.sqrt(Dataset.objects.get(dbname_text=cutout_info.dataset).defaultthreshold)
                 print(str(cutout_info.threshold) + "  =  Threshold")
+            if (cfieldlist[0] == 'pcvo'):
+                self.preview = 1
         else:
             cutout_info.datafields = w[2]
             print("Datafields: ", w[2])
