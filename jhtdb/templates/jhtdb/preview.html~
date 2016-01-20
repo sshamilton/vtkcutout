@@ -89,8 +89,8 @@
 					geometry.computeVertexNormals();
 
 					var mesh = new THREE.Mesh( geometry, material );
-					//mesh.position.setY( - 0.09 );
-                    mesh.position.setY( 0.0 );
+					mesh.position.setY( - 0.09 );
+                    //mesh.position.setY( 0.0 );
 					scene.add( mesh );
 
 				} );
