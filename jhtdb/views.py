@@ -91,6 +91,7 @@ def index(request):
 
 def getcutout(request, webargs):
     ci = CutoutInfo()
+    ci.ipaddr = request.META.get('REMOTE_ADDR', '')
     jhlib = JHTDBLib()
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)

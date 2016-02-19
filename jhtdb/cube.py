@@ -25,19 +25,14 @@ class Cube:
     def getCubeData(self, ci, datafield, timestep):
         #get this from field data in db
         components = Datafield.objects.get(shortname=datafield).components
-        #print("Set componets to ", components)
-        #import pdb;pdb.set_trace()
-        #Old Way
-        #DBSTRING = os.environ['db_connection_string']
-        #New Way 
         DBSTRING = settings.ODBC['db_connection_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
         start = time.time()
         #Need to get the time factor which is the multiple of the timestep 
         timefactor = Dataset.objects.get(dbname_text=ci.dataset).timefactor
-        cursor.execute("{CALL turblib.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
-            ci.dataset, datafield, timestep*timefactor, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
+        cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
+            ci.dataset, datafield, ci.authtoken, ci.ipaddr, timestep*timefactor, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
         end = time.time()
         extime = end - start
         print ("DB Execution time: " + str(extime) + " seconds")

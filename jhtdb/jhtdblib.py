@@ -27,6 +27,7 @@ class CutoutInfo():
         self.filter = 1
         self.threshold = .5 #not a good default, but we need something here.  Should be overwritten by parsewebargs.
         self.preview = 0
+        self.ipaddr = "127.0.0.1" #Place for user ip address for logging.
 
 
 class JHTDBLib():
@@ -80,7 +81,7 @@ class JHTDBLib():
         return cutout_info
 
     def verify(self, authtoken):
-        DBSTRING = settings.ODBC['db_connection_string']
+        DBSTRING = settings.ODBC['db_infodb_string']
         conn = pyodbc.connect(DBSTRING, autocommit=True)
         cursor = conn.cursor()
         query = "SELECT uid, limit FROM turbinfo..users WHERE authkey = '" + str(authtoken) + "'"
