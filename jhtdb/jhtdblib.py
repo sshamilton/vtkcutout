@@ -31,7 +31,7 @@ class CutoutInfo():
 
 
 class JHTDBLib():
-    
+
     def parsewebargs(self, webargs):
         cutout_info = CutoutInfo()
         w = webargs.split("/")
@@ -48,12 +48,12 @@ class JHTDBLib():
         #For computed fields, set component to velocity.
         cfieldlist = w[2].split(",")
         if ((cfieldlist[0] == 'vo') or (cfieldlist[0] == 'qc') or (cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'qcc')or (cfieldlist[0] == 'pcvo')):
-            cutout_info.datafields = w[2]            
-            if (cfieldlist[1] != ''):                
+            cutout_info.datafields = w[2]
+            if (cfieldlist[1] != ''):
                 cutout_info.threshold = float(cfieldlist[1])
             else:
                 print("Threshold not found, defaulting")
-                #Just in case the user didn't supply anything, we default to the values in the database.                                
+                #Just in case the user didn't supply anything, we default to the values in the database.
                 if ((cfieldlist[0] == 'cvo') or (cfieldlist[0] == 'pcvo')):
                     cutout_info.threshold = Dataset.objects.get(dbname_text=cutout_info.dataset).defaultthreshold
                     cutout_info.filetype='vtk' #Might as well force this--we aren't doing contours with an HDF5 file.
