@@ -120,7 +120,7 @@ class VTKData:
         #This is only called on qcc or cvo
         #cube size should be 256 or 512 for production, using 16 for testing.
 
-        cubedimension = 128
+        cubedimension = 256
 
         fullcubesize  = [math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension]
         #print ("Full poly mesh cube size is: ", fullcubesize)
@@ -286,7 +286,7 @@ class VTKData:
         image = vtk.vtkImageData()
         rg = vtk.vtkRectilinearGrid()              
         for field in fieldlist:
-            if (ci.xlen > 128 and ci.ylen > 128 and ci.zlen > 128 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1 and not contour):
+            if (ci.xlen > 61 and ci.ylen > +61 and ci.zlen > 61 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1 and not contour):
                 #Do this if cutout is too large
                 #Note: we don't want to get cubed data if we are doing cubes for contouring.
                 data=GetData().getcubedrawdata(ci, timestep, field)

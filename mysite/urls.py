@@ -8,3 +8,8 @@ urlpatterns = [
     url(r'^$', include('jhtdb.urls')),
 ]
 
+#For dev server to server the correct static files
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+urlpatterns += staticfiles_urlpatterns()
+
+
