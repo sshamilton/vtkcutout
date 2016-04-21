@@ -19,7 +19,7 @@ class GetData:
         cube.getCubeData(ci, datafield, timestep)
         return cube.data
 
-    def getcubedrawdata(self, selftask = None, ci, timestep, datafield):
+    def getcubedrawdata(self, ci, timestep, datafield, selftask = None):
         #We need to chunk the data first    
         #cubesize 16
         cubedimension = 256

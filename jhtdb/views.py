@@ -139,7 +139,7 @@ def getcutout(request, webargs):
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)
     numpoints = ci.xlen * ci.ylen * ci.zlen
-    if (numpoints > 16777215): #task out anything larger than 256x256x256 and ignore shape
+    if ((numpoints > 16777215) and (ci.filetype == 'hdf5')): #task out anything larger than 256x256x256 and ignore shape
         ipaddr = request.META.get('REMOTE_ADDR', '') 
         getcutout = Getbigcutout()
         task = getcutout.delay(webargs, ipaddr)
