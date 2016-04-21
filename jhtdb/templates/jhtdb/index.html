@@ -260,7 +260,7 @@ $(document).ready(function() {
             datafields + "/" + $("#id_timestart").val() +","+ $("#id_timeend").val() + "/" + $("#id_x").val() + "," + $("#id_xEnd").val()
             +"/" + $("#id_y").val() + "," + $("#id_yEnd").val() +"/" + $("#id_z").val() + "," + $("#id_zEnd").val() + "/" + 
             $("#id_fileformat").val() + "/" + step;
-            $("#download_link").replaceWith("<a href='" + url + "' id='download_link' >" +url + "</a>");
+            $("#download_link").replaceWith("<a href='" + url + "' id='download_link' target='_blank' >" +url + "</a>");
             $("#download_link").click(function() {
             /*Update progress bar -- should be on click*/
                 /*

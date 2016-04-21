@@ -46,7 +46,8 @@ class GetData:
             cube = self.getfilecube(args[cubesfinished])
             fullcube.addData(cube, ci)
             cubesfinished=cubesfinished+1
-            selftask.update_state(state='PROGRESS', meta={'cubes': cubesfinished, 'total': cubecount})
+            if (selftask != None): #Update status for progress bar when tasked
+                selftask.update_state(state='PROGRESS', meta={'cubes': cubesfinished, 'total': cubecount})
         #Multiprocessing
         #if (cubecount > 4):
         #    cubecount = 4 #limit to only 8 processes 
