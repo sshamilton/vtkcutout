@@ -30,7 +30,15 @@
                     var file_url = '/static/cutoutcache/' + data.filename;
                     $("#content").html("If your download doesn't start automatically, please click <a href='"+file_url+"'>here</a>.");
                     window.location.href = file_url;
-                } else {
+                } else if (data == "None") {
+                    $("#percentcomplete").html('0%');
+                    $( "#progressbar" ).progressbar({
+                              value: 0
+                            });
+                    setTimeout(worker, 5000);
+
+                   }
+                  else  {
                     //Since it isn't ready, get progress of build
                     if (data.result.cubes == 0) {
                         percent = 0;
