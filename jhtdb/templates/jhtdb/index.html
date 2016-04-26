@@ -204,8 +204,28 @@ Filter Width (optional): {{form.filter}}</span>
 <script>
 
 function calcSize() {
-   components = 3
-   sizeoffloat = 4
+   function componentsize(component) {
+        if ((component == "u") || (component == "a")|| (component == "b")|| (component == "w")) {
+            console.log("return 3: " + component);
+            return 3;
+        }
+        else {
+            console.log("return 1: " + component);
+            return 1;
+        }
+   };
+   components = 0; 
+   component_array = $("#id_datafields").val();
+   console.log("Component array: " +  component_array);
+   for (var component in component_array)
+    {
+        components = components + componentsize(component_array[component]);
+    }
+
+   console.log($("#id_datafields").val());
+   console.log("Was values");
+   //components = 3;
+   sizeoffloat = 4;
    size = sizeoffloat * $("#id_xEnd").val() * $("#id_yEnd").val() * $("#id_zEnd").val() * components * $("#id_timeend").val()/($("#id_xstep").val()*$("#id_ystep").val()*$("#id_zstep").val()*$("#id_tstep").val());
    $("#downloadsize").replaceWith("<div id='downloadsize'>Approximate Size (uncompressed): " + formatSize(size) + "</div>");
 }
