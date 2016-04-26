@@ -198,6 +198,7 @@ Filter Width (optional): {{form.filter}}</span>
 <input type="submit" name="Submit" Value="Submit Cutout Parameters" />
 </form>
 
+
 <script>
 
 function calcSize() {
@@ -260,20 +261,8 @@ $(document).ready(function() {
             datafields + "/" + $("#id_timestart").val() +","+ $("#id_timeend").val() + "/" + $("#id_x").val() + "," + $("#id_xEnd").val()
             +"/" + $("#id_y").val() + "," + $("#id_yEnd").val() +"/" + $("#id_z").val() + "," + $("#id_zEnd").val() + "/" + 
             $("#id_fileformat").val() + "/" + step;
-            $("#download_link").replaceWith("<a href='" + url + "' id='download_link' >" +url + "</a>");
-            $("#download_link").click(function() {
-            /*Update progress bar -- should be on click*/
-                /*
-                $.get( "getprogress", function( data ) {
-                $( ".result" ).html( data );
-                  $(function() {
-                    $( "#progressbar" ).progressbar({
-                      value: 10
-                    });
-                  });
-                alert( "Load was performed." );
-                });   */
-            });
+            $("#download_link").replaceWith("<iframe name='getcutout' width='350' height='100' frameBorder='0'></iframe><a href='" + url + "' id='download_link' target='getcutout' >" +url + "</a>");
+
 
             /*Set progress bar to 0.*/
             $(function() {
