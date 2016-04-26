@@ -87,6 +87,8 @@ Threshold (optional, default is ...): {{form.threshold}}
 </td></tr>
 </table>
 <br />
+<span id="datasetcomment"></span>
+
 <table width="600px">
 <tr><td>Specify the cutout parameters below. Select the starting index for the cutout and the size in each dimension. Optionally, a step or stride can be specified to obtain every "other" data point. If a step size is specified the data can olso optionally be filtered using a box filter (except in the case of the channel flow dataset). To get a filtered cutout specify the filter width for the box filter in units of grid points. 
 </td></tr>
@@ -302,6 +304,11 @@ $(document).ready(function() {
            
       {% endfor %}
     
+      if ("{{dset.dbname_text}}" == "channel") {
+	      $("#datasetcomment").text("<span>Channel grid</span>");
+      }
+
+
       $("#time_start_range").text("({{dset.tstart}}-{{dset.timeend|add:-1}})");
       $("#time_end_range").text("({{dset.tstart|add:1}}-{{dset.timeend}})");
       $("#x_start_range").text("({{dset.xstart}}-{{dset.xend|add:-1}})");
@@ -404,7 +411,13 @@ $('#id_dataset').on('change', function() {
       $("#id_zEnd").rules("add", {required: true, range: [{{dset.zstart|add:1}}, {{dset.zend}}]  });
       $("#id_timeend").rules("remove");
       $("#id_timeend").rules("add", {required: true, range: [{{dset.tstart|add:1}}, {{dset.timeend}}]  });
-    break;
+      if ("{{dset.dbname_text}}" == "channel") {
+	   $("#datasetcomment").text("	Note: Simulation was performed in a moving frame and the spatial locations of the data are those of the moving grid.");
+	 }
+
+
+  
+      break;
     {% endfor %}
     }
 

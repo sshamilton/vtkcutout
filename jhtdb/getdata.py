@@ -19,7 +19,7 @@ class GetData:
     def getcubedrawdata(self, ci, timestep, datafield):
         #We need to chunk the data first    
         #cubesize 16
-        cubedimension = 128
+        cubedimension = 256
         components = Datafield.objects.get(shortname=datafield).components
         fullcubesize  = [math.ceil(float(ci.zlen)/float(cubedimension))*cubedimension, math.ceil(float(ci.ylen)/float(cubedimension))*cubedimension, math.ceil(float(ci.xlen)/float(cubedimension))*cubedimension]
         print ("Full cube size is: ", fullcubesize)

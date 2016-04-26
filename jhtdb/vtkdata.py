@@ -57,7 +57,7 @@ class VTKData:
         if ((firstval == 'cvo') or (firstval == 'qcc') or (firstval == 'pcvo')): #we may need to return a vtp file
             tmp = NamedTemporaryFile(suffix='.vtp')
             suffix = 'vtp'
-            writer = vtk.vtkXMLPolyDataWriter()                         
+            writer = vtk.vtkXMLPolyDataWriter()
             outfile = ci.dataset + '-contour'
             contour = True
         elif (ci.dataset == "channel"):
@@ -109,7 +109,8 @@ class VTKData:
             else:     
                 image = self.getvtkdata(ci, ci.tstart)            
             writer.SetInputData(image)
-            writer.SetFileName(tmp.name)                        
+            writer.SetFileName(tmp.name)
+            writer.EncodeAppendedDataOff()
             writer.Write()
             ct = 'applicaton/' + suffix
             response = HttpResponse(tmp, content_type=ct)
@@ -429,15 +430,15 @@ class VTKData:
             q.ComputeQCriterionOn()
             q.Update()
             image.GetPointData().SetScalars(q.GetOutput().GetPointData().GetVectors("Q-criterion"))
-            mag = vtk.vtkImageMagnitude()
-            mag.SetInputData(image)
-            mag.Update()
+            #mag = vtk.vtkImageMagnitude()
+            #mag.SetInputData(image)
+            #mag.Update()
             mend = time.time()
             comptime = mend-start
-            print("Magnitude Computation time: " + str(comptime) + "s")
+            #print("Magnitude Computation time: " + str(comptime) + "s")
             c = vtk.vtkContourFilter()
             c.SetValue(0,ci.threshold)
-            c.SetInputData(mag.GetOutput())
+            c.SetInputData(image)
             print("Computing Contour with threshold", ci.threshold)
             c.Update()
             cend = time.time()
