@@ -205,7 +205,7 @@ Filter Width (optional): {{form.filter}}</span>
 
 function calcSize() {
    function componentsize(component) {
-        if ((component == "u") || (component == "a")) {
+        if ((component == "u") || (component == "a")|| (component == "b")|| (component == "w")) {
             console.log("return 3: " + component);
             return 3;
         }
