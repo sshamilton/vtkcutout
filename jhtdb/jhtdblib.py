@@ -28,6 +28,7 @@ class CutoutInfo():
         self.threshold = .5 #not a good default, but we need something here.  Should be overwritten by parsewebargs.
         self.preview = 0
         self.ipaddr = "127.0.0.1" #Place for user ip address for logging.
+        self.persistance = 0 #used for big files
 
 
 class JHTDBLib():

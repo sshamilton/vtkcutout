@@ -3,6 +3,7 @@ import pyodbc, os
 from jhtdb.models import Datafield, Dataset
 import time
 from django.conf import settings
+import sys
 
 class Cube:
 
@@ -31,8 +32,19 @@ class Cube:
         start = time.time()
         #Need to get the time factor which is the multiple of the timestep 
         timefactor = Dataset.objects.get(dbname_text=ci.dataset).timefactor
-        cursor.execute("{CALL turblib.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
-            ci.dataset, datafield, ci.authtoken, ci.ipaddr, timestep*timefactor, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
+        #It appears this sometimes fails when parallel processing, so we try up to 3 times...
+        retries =3
+        attempt = 0
+        while (attempt < retries ):
+            try:
+                cursor.execute("{CALL turbdev.dbo.GetAnyCutout(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}",
+                    ci.dataset, datafield, ci.authtoken, ci.ipaddr, timestep*timefactor, self.xstart, self.ystart, self.zstart, self.xstep, self.ystep, self.zstep,1,1,self.xwidth,self.ywidth,self.zwidth,self.filterwidth,1)
+                attempt = retries #success, so don't let it retry.
+                print("SQL Succeeded")
+            except:
+                print("Call %d failed", attempt)
+                attempt = attempt+1
+
         end = time.time()
         extime = end - start
         print ("DB Execution time: " + str(extime) + " seconds")
@@ -52,7 +64,21 @@ class Cube:
         shape[0] = (self.zwidth+ci.zstep-1)/ci.zstep                    
         shape[1] = (self.ywidth+ci.ystep-1)/ci.ystep                    
         shape[2] = (self.xwidth+ci.xstep-1)/ci.xstep
-        self.data = np.frombuffer(raw, dtype=np.float32).reshape([shape[0],shape[1],shape[2],components])
+        print("raw size: ", sys.getsizeof(raw))
+        print(self.data.shape, " actual: ", np.frombuffer(raw, dtype=np.float32).shape)
+        try:
+            self.data = np.frombuffer(raw, dtype=np.float32).reshape([shape[0],shape[1],shape[2],components])
+            print("Size matched")
+            print (self.data.shape)
+            print(len(raw))
+            print(len(self.data))
+            return True
+        except:
+            print("Size apparently didn't match!")
+            print (self.data.shape)
+            print(len(raw))
+            print(len(self.data))
+            return False
         #print("shape = ")
         #print (self.data.shape)
         conn.close()
