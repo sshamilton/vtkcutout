@@ -11,5 +11,5 @@ urlpatterns = [
     url(r'^preview/(?P<webargs>.*)$', views.preview, name='preview'),
     url(r'^getprogress/(?P<webargs>.*)$', views.getprogress, name='getprogress'),
     url(r'^poll_for_download/$', views.poll_for_download, name='poll_for_download'),
-
+    url(r'^tests/(?P<webargs>.*)$', views.tests, name='tests'),
 ]

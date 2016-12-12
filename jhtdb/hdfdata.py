@@ -29,27 +29,27 @@ class HDFData:
             for field in fieldlist:
                 #We need to get the component size from the database.  
                 print ("Field is: ", field)
-                #import pdb;pdb.set_trace()   
                 components = Datafield.objects.get(shortname=field).components
                 for timestep in range(ci.tstart,ci.tstart+ci.tlen, ci.tstep):
                     #raw = GetData().getrawdata(ci, timestep, field)
-                    #Cube up the data if it is this large.  Step gets messed up here, so don't cube if stepped.
-                    if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1):
-                        #Do this if cutout is too large
-                        data=GetData().getcubedrawdata(ci, timestep, field, selftask)
-                    else:
-                        data=GetData().getrawdata(ci, timestep, field)                        
-                    # data = np.frombuffer(raw, dtype=np.float32)
+                    #Cube up the data if it is this large.  Step gets messed up here, so don't cube if stepped
                     dsetname = field + '{0:05d}'.format(timestep*10)
                     shape = [0]*3
-                    shape[0] = (ci.zlen+ci.zstep-1)/ci.zstep                    
-                    shape[1] = (ci.ylen+ci.ystep-1)/ci.ystep                    
-                    shape[2] = (ci.xlen+ci.xstep-1)/ci.xstep                    
-                    dset = fh.create_dataset(dsetname, (shape[0], shape[1], shape[2],components),
-                        maxshape=(shape[0], shape[1], shape[2],components),compression='lzf')
-                    print ("Data length is: %s" %len(data))                    
-                    data = data.reshape(shape[0], shape[1], shape[2],components)
-                    dset[...] = data
+                    shape[0] = (ci.zlen+ci.zstep-1)/ci.zstep
+                    shape[1] = (ci.ylen+ci.ystep-1)/ci.ystep
+                    shape[2] = (ci.xlen+ci.xstep-1)/ci.xstep
+                    dset = fh.create_dataset(dsetname, (shape[0], shape[1],
+                        shape[2], components), maxshape=(shape[0], shape[1], shape[2],components))
+                    if (ci.xlen > 255 and ci.ylen > 255 and ci.zlen > 255 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1):
+                        #Do this if cutout is too large
+                        dset[...]=GetData().getcubedrawdata(ci, timestep,
+                                field, selftask).reshape(shape[0], shape[1],
+                                        shape[2], components)
+                    else:
+                        dset[...]=GetData().getrawdata(ci, timestep,
+                                field).reshape(shape[0], shape[1], shape[2],
+                                        components)
+                    # data = np.frombuffer(raw, dtype=np.float32)
         except:
             fh.close()
             tmpfile.close()

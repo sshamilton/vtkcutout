@@ -23,7 +23,7 @@ from tasks import Getbigcutout
 
 # Create your views here.
 class CutoutForm(forms.Form):
-    token = forms.CharField(label = 'token', max_length=50)
+    token = forms.CharField(label = 'token', max_length=200)
     fileformat = forms.ChoiceField(choices=[('vtk', 'VTK'), ('hdf5', 'HDF5')])
     dataset = forms.ModelChoiceField(queryset=Dataset.objects.all().order_by('dataset_text'), to_field_name="dbname_text", help_text="Choose a dataset")
     #datafields = forms.MultipleChoiceField(choices=[('u', 'Velocity'), ('p', 'Pressure')])
@@ -131,24 +131,25 @@ def poll_for_download(request):
         response['Content-Disposition'] = 'attachment; filename=%s' % filename
     return response
 
- 
 def getcutout(request, webargs):
     ci = CutoutInfo()
-    ci.ipaddr = request.META.get('REMOTE_ADDR', '') 
+    ci.ipaddr = request.META.get('REMOTE_ADDR', '')
     jhlib = JHTDBLib()
     #Parse web args into cutout info object
     ci=jhlib.parsewebargs(webargs)
     numpoints = ci.xlen * ci.ylen * ci.zlen
     if ((numpoints > 16777215) and (ci.filetype == 'hdf5')): #task out anything larger than 256x256x256 and ignore shape
-        ipaddr = request.META.get('REMOTE_ADDR', '') 
+        ipaddr = request.META.get('REMOTE_ADDR', '')
         getcutout = Getbigcutout()
         task = getcutout.delay(webargs, ipaddr)
+        #Test without celery
+        #getcutout.run(webargs, ipaddr)
         print ("Task id is  ")
         print task.task_id
         print ("From IP: ")
         print ipaddr
         template = loader.get_template('poll_for_download.html')
-        print("returning http response. with task id  %s" % task.task_id)
+        #print("returning http response. with task id  %s" % task.task_id)
         html = template.render({'task_id': task.task_id}, request)
         return HttpResponse(html)
     else:
@@ -168,7 +169,6 @@ def getcutout(request, webargs):
                 response['Content-Disposition'] = attach
         else:
             response = HttpResponse("Error: token is invalid")
-        
         print ("returing file")
         return response
     print("Shouldn't get here")
@@ -189,6 +189,18 @@ def preview(self, request, webargs):
         response = HttpResponse(template.render(context))
     else:
         response = HttpResponse("Error: token is invalid")
+    return response
+
+def tests(self, webargs):
+    from testchannel import testchannel
+    from django.template import Context, Template, loader
+    print webargs[0]
+    print ("was arg")
+    chantimes = testchannel(int(webargs.split('/')[0]))
+    #chantimes= [30.1, 20.1]
+    context = Context({ 'chantimes': chantimes, 'c': 1})
+    t = loader.get_template('jhtdb/tests.html')
+    response = HttpResponse(t.render(context))
     return response
 
 
