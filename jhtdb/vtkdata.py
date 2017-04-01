@@ -90,24 +90,23 @@ class VTKData:
                 else:     
                     image = self.getvtkdata(ci, timestep)
                 writer.SetInputData(image)
-                writer.SetFileName(tmp.name)                        
+                writer.SetFileName(tmp.name)
                 writer.Write()
                 #Now add this file to the zipfile
                 z.write(tmp.name, 'cutout' + str(timestep) + '.' + suffix)
                 image = None
-                
             z.close()
             #Try to clean up here
             writer = None
             ct = 'application/zip'
             suffix = 'zip'
-            response = HttpResponse(ziptmp, content_type=ct)            
+            response = HttpResponse(ziptmp, content_type=ct)
         else:
             #print("Single Timestep")
             if (contour == True): #If we have a contour, call the cache version.
                 image = self.getcachedcontour(ci, ci.tstart)
-            else:     
-                image = self.getvtkdata(ci, ci.tstart)            
+            else:
+                image = self.getvtkdata(ci, ci.tstart)
             writer.SetInputData(image)
             writer.SetFileName(tmp.name)
             writer.EncodeAppendedDataOff()
@@ -361,14 +360,13 @@ class VTKData:
             end = time.time()
             comptime = end-start
             print("Vorticity Computation time: " + str(comptime) + "s")
-            return image
+            return vorticity.GetOutput()
         elif (computation == 'cvo' or computation == 'pcvo'):
             start = time.time()
             
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
-            
             vorticity.SetInputData(image)
             #print("Computing Voricity")
             vorticity.Update()
