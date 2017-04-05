@@ -8,7 +8,7 @@ from getdata import GetData
 from django.core.files.temp import NamedTemporaryFile
 import vtk
 from vtk.util import numpy_support
-import copy 
+import copy
 import zipfile
 import time
 import math
@@ -68,8 +68,8 @@ class VTKData:
         else:
             tmp = NamedTemporaryFile(suffix='.vti')
             suffix = 'vti'
-            writer = vtk.vtkXMLImageDataWriter()                        
-            outfile = ci.dataset        
+            writer = vtk.vtkXMLImageDataWriter()
+            outfile = ci.dataset
         writer.SetFileName(tmp.name)
         writer.SetCompressorTypeToZLib()
         writer.SetDataModeToBinary()
@@ -87,7 +87,7 @@ class VTKData:
             for timestep in range (ci.tstart,ci.tstart+ci.tlen, ci.tstep ):
                 if (contour == True): #If we have a contour, call the cache version.
                     image = self.getcachedcontour(ci, timestep)
-                else:     
+                else:
                     image = self.getvtkdata(ci, timestep)
                 writer.SetInputData(image)
                 writer.SetFileName(tmp.name)
@@ -145,7 +145,6 @@ class VTKData:
                     #fullcube.AddInputConnection(output.GetOutputPort())
 
         #Create a process pool for each cube
-        #print ("Numcubes: ", cubecount)
         if (cubecount > 8):
             cubecount = 8 #limit to only 8 processes 
         p = Pool(cubecount)
@@ -153,7 +152,6 @@ class VTKData:
         #connection.close()
         cubelist = p.map(self.buildcube, args)
         #p.join() #wait for processes to finish 
-        
         for filename in cubelist:
             r = vtk.vtkXMLPolyDataReader()
             r.SetFileName(filename)
@@ -177,12 +175,11 @@ class VTKData:
         zspacing = Dataset.objects.get(dbname_text=ci.dataset).zspacing 
         box = vtk.vtkBox()
         box.SetBounds(ci.xstart*xspacing, (ci.xstart+ci.xlen-1)*xspacing, ci.ystart*yspacing, (ci.ystart+ci.ylen-1)*yspacing, ci.zstart*zspacing, (ci.zstart + ci.zlen-1)*zspacing)
-         
-        fullcube.Update()   
+        fullcube.Update()
         clip = vtk.vtkClipPolyData()
         clip.SetClipFunction(box)
         clip.GenerateClippedOutputOn()
-        fco = fullcube.GetOutput()               
+        fco = fullcube.GetOutput()
         fco.GetPointData().SetScalars(fco.GetPointData().GetArray("Velocity"))
         clip.SetInputData(fco)
         clip.InsideOutOn()
@@ -243,9 +240,7 @@ class VTKData:
             writer.SetFileName(fullname)
             writer.SetInputData(vtpcube.GetOutput())
             writer.Write()
-            
             #cleanup
-
             #ccache = Polycache(zindexstart=mortonstart, zindexend=mortonend, filename=vtpfilename, compute_time=(end-start), threshold=ci.threshold,dataset=dataset, computation=ci.datafields.split(",")[0], timestep=timestep, filterwidth=ci.filter)
             #ccache.save()
             #import pdb;pdb.set_trace()
@@ -264,7 +259,8 @@ class VTKData:
         if ((firstval == 'vo') or (firstval == 'qc') or (firstval == 'cvo') or (firstval == 'pcvo') or (firstval == 'qcc')):
             datafields = 'u'
             computation = firstval #We are doing a computation, so we need to know which one.
-            if ((firstval == 'cvo') or (firstval == 'qcc') or (firstval == 'pcvo')):
+            if ((firstval == 'cvo') or (firstval == 'qcc') or (firstval ==
+                'pcvo') or (firstval == 'vo') or (firstval == 'qc')):
                 overlap = 3 #This was 2, but due to rounding because of the spacing, 3 is required.
                 #Save a copy of the original request
                 oci = jhtdblib.CutoutInfo()
@@ -275,7 +271,7 @@ class VTKData:
                 oci.ylen = ci.ylen
                 oci.zlen = ci.zlen
                 ci = self.expandcutout(ci, overlap) #Expand the cutout by the overlap
-                contour = True               
+                contour = True
         else:
             datafields = ci.datafields.split(',') #There could be multiple components, so we will have to loop
             computation = ''
@@ -284,19 +280,18 @@ class VTKData:
         #Check to see if we have a value for vorticity or q contour
         fieldlist = list(datafields)
         image = vtk.vtkImageData()
-        rg = vtk.vtkRectilinearGrid()              
+        rg = vtk.vtkRectilinearGrid()
         for field in fieldlist:
             if (ci.xlen > 61 and ci.ylen > +61 and ci.zlen > 61 and ci.xstep ==1 and ci.ystep ==1 and ci.zstep ==1 and not contour):
                 #Do this if cutout is too large
                 #Note: we don't want to get cubed data if we are doing cubes for contouring.
                 data=GetData().getcubedrawdata(ci, timestep, field)
             else:
-                data=GetData().getrawdata(ci, timestep, field)                  
-            vtkdata = numpy_support.numpy_to_vtk(data.flat, deep=True, array_type=vtk.VTK_FLOAT)            
+                data=GetData().getrawdata(ci, timestep, field)
+            vtkdata = numpy_support.numpy_to_vtk(data.flat, deep=True, array_type=vtk.VTK_FLOAT)
             components = Datafield.objects.get(shortname=field).components
             vtkdata.SetNumberOfComponents(components)
-            vtkdata.SetName(Datafield.objects.get(shortname=field).longname)  
-            
+            vtkdata.SetName(Datafield.objects.get(shortname=field).longname)
             #We need to see if we need to subtract one on end of extent edges.
             image.SetExtent(ci.xstart, ci.xstart+((ci.xlen+ci.xstep-1)/ci.xstep)-1, ci.ystart, ci.ystart+((ci.ylen+ci.ystep-1)/ci.ystep)-1, ci.zstart, ci.zstart+((ci.zlen+ci.zstep-1)/ci.zstep)-1)
             #image.SetExtent(ci.xstart, ci.xstart+int(ci.xlen)-1, ci.ystart, ci.ystart+int(ci.ylen)-1, ci.zstart, ci.zstart+int(ci.zlen)-1)
@@ -360,10 +355,12 @@ class VTKData:
             end = time.time()
             comptime = end-start
             print("Vorticity Computation time: " + str(comptime) + "s")
+            print ("Returning vorticity")
+            print (vorticity.GetOutput())
+            print vorticity
             return vorticity.GetOutput()
         elif (computation == 'cvo' or computation == 'pcvo'):
             start = time.time()
-            
             vorticity = vtk.vtkCellDerivatives()
             vorticity.SetVectorModeToComputeVorticity()
             vorticity.SetTensorModeToPassTensors()
@@ -393,11 +390,13 @@ class VTKData:
             comptime = cend-mend
             print("Contour Computation time: " + str(comptime) + "s")
             #Now we need to clip out the overlap
-            box = vtk.vtkBox()    
+            box = vtk.vtkBox()
             #set box to requested size
             #The OCI deepcopy didn't seem to work.  Manually taking the overlap again.
-            box.SetBounds(oci.xstart*xspacing, (oci.xstart+oci.xlen)*xspacing, oci.ystart*yspacing, (oci.ystart+oci.ylen)*yspacing, oci.zstart*yspacing,(oci.zstart+oci.zlen)*yspacing)
-            clip = vtk.vtkClipPolyData()       
+            box.SetBounds(oci.xstart*xspacing, (oci.xstart+oci.xlen)*xspacing,
+                    oci.ystart*yspacing, (oci.ystart+oci.ylen)*yspacing,
+                    oci.zstart*zspacing,(oci.zstart+oci.zlen)*zspacing)
+            clip = vtk.vtkClipPolyData()
             clip.SetClipFunction(box)
             clip.GenerateClippedOutputOn()
             clip.SetInputData(c.GetOutput())
@@ -419,7 +418,27 @@ class VTKData:
             #return cropdata
             #We need the output port for appending, so return the clip instead
             return clip
-
+        elif (computation == 'qc'):
+            q = vtk.vtkGradientFilter()
+            q.SetInputData(image)
+            q.SetInputScalars(image.FIELD_ASSOCIATION_POINTS,"Velocity")
+            q.ComputeQCriterionOn()
+            q.Update()
+            print ("completed q criterion computation")
+            if (ci.dataset == "channel"):
+                clip = vtk.vtkExtractRectilinearGrid()
+            else:
+                clip = vtk.vtkExtractVOI()
+            clip.SetVOI(oci.xstart,
+                    (oci.xstart+oci.xlen-1), oci.ystart,
+                    (oci.ystart+oci.ylen-1),
+                    oci.zstart,(oci.zstart+oci.zlen-1)) 
+            clip.SetInputData(q.GetOutput())
+            clip.Update()
+            cropdata = clip.GetOutput()
+            #Cleanup
+            image.ReleaseData()
+            return cropdata
         elif (computation == 'qcc'):
             start = time.time()
             q = vtk.vtkGradientFilter()
@@ -443,10 +462,10 @@ class VTKData:
             comptime = cend-mend
             print("Q Contour Computation time: " + str(comptime) + "s")
             #clip out the overlap here
-            box = vtk.vtkBox()    
+            box = vtk.vtkBox()
             #set box to requested size
             box.SetBounds(oci.xstart, oci.xstart+oci.xlen-1, oci.ystart, oci.ystart+oci.ylen-1, oci.zstart,oci.zstart+oci.zlen-1)
-            clip = vtk.vtkClipPolyData()       
+            clip = vtk.vtkClipPolyData()
             clip.SetClipFunction(box)
             clip.GenerateClippedOutputOn()
             clip.SetInputData(c.GetOutput())
