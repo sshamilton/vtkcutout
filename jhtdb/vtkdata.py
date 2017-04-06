@@ -432,10 +432,11 @@ class VTKData:
             clip.SetVOI(oci.xstart,
                     (oci.xstart+oci.xlen-1), oci.ystart,
                     (oci.ystart+oci.ylen-1),
-                    oci.zstart,(oci.zstart+oci.zlen-1)) 
+                    oci.zstart,(oci.zstart+oci.zlen-1))
             clip.SetInputData(q.GetOutput())
             clip.Update()
             cropdata = clip.GetOutput()
+            cropdata.GetPointData().RemoveArray("Velocity")
             #Cleanup
             image.ReleaseData()
             return cropdata
